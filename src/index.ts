@@ -14,6 +14,8 @@ import {
   loadToolFilter,
   getInstanceNames,
   resolveJenkinsInstance,
+  exposedToolNames,
+  assertToolExposed,
   CliArgs,
 } from "./common/index.js"
 import { JenkinsClient } from "./lib/jenkins-client.js"
@@ -98,6 +100,9 @@ if (allowlist) {
 }
 
 const tools = filteredRawTools.map(injectInstance)
+// Call-side enforcement of the same filter: tools/list visibility alone is not
+// a boundary, so names outside this set are rejected as unknown tools.
+const exposedTools = exposedToolNames(filteredRawTools)
 
 // Map tool names to handler functions
 type ToolHandler = (client: JenkinsClient, input: any) => Promise<any>
@@ -290,6 +295,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params
 
   try {
+    assertToolExposed(exposedTools, name)
+
     if (name === "jenkins_list_instances") {
       return {
         content: [

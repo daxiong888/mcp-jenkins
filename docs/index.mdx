@@ -40,6 +40,8 @@ claude mcp add --transport stdio --scope user jenkins \
 
 ✅ Done! Now you can use Jenkins commands in your AI assistant.
 
+> **Production use:** all 38 tools — including write and destructive ones — are exposed by default. Prefer an allowlist, a least-privilege Jenkins identity, and a pinned, reviewed version over `@latest`. See [Configuration](/projects/mcp-jenkins/docs/configuration) for details.
+
 For per-client setup (Claude Desktop, Cursor, VSCode, JetBrains, and more), see the
 [Installation](/projects/mcp-jenkins/docs/installation) guide.
 

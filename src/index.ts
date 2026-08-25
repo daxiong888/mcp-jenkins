@@ -206,6 +206,10 @@ Options:
   --anonymous            No-auth Jenkins instance (no credentials required)
   -h, --help             Show this help message
 
+  Note: --api-token/--bearer-token work, but CLI secrets are visible in
+  process lists and shell history. Prefer MCP_JENKINS_* environment
+  variables or your MCP client's env config for credentials.
+
 Authentication:
   Either provide --bearer-token OR both --user and --api-token
   OR use --anonymous for Jenkins instances with no authentication
@@ -216,14 +220,16 @@ Tool Filtering (via environment variables):
   If both are set, MCP_JENKINS_ALLOW_TOOLS takes precedence.
 
 Examples:
-  # Bearer token auth (via CLI)
-  mcp-jenkins --url https://jenkins.example.com --bearer-token abc123
+  # Bearer token auth (via environment)
+  MCP_JENKINS_BEARER_TOKEN=abc123 mcp-jenkins --url https://jenkins.example.com
 
-  # Basic auth (via CLI)
-  mcp-jenkins --url https://jenkins.example.com --user admin --api-token xyz789
+  # Basic auth (via environment)
+  MCP_JENKINS_USER=admin MCP_JENKINS_API_TOKEN=xyz789 \\
+    mcp-jenkins --url https://jenkins.example.com
 
-  # Mixed (CLI + env vars)
-  MCP_JENKINS_USER=admin mcp-jenkins --url https://jenkins.example.com --api-token xyz789
+  # Mixed (CLI URL + env credentials)
+  MCP_JENKINS_USER=admin MCP_JENKINS_API_TOKEN=xyz789 \\
+    mcp-jenkins --url https://jenkins.example.com
 
   # Environment variables only
   MCP_JENKINS_URL=https://jenkins.example.com \\
@@ -232,11 +238,13 @@ Examples:
 
   # Read-only monitoring (block all write tools)
   MCP_JENKINS_BLOCK_TOOLS=jenkins_trigger_build,jenkins_stop_build,jenkins_delete_build,jenkins_cancel_queue,jenkins_enable_job,jenkins_disable_job,jenkins_delete_job,jenkins_create_job,jenkins_update_job_config,jenkins_rename_job,jenkins_copy_job,jenkins_toggle_node_offline,jenkins_quiet_down,jenkins_cancel_quiet_down,jenkins_safe_restart,jenkins_replay_build \\
-  mcp-jenkins --url https://jenkins.example.com --bearer-token abc123
+  MCP_JENKINS_BEARER_TOKEN=abc123 \\
+  mcp-jenkins --url https://jenkins.example.com
 
   # Allowlist — expose only job listing and status tools
   MCP_JENKINS_ALLOW_TOOLS=jenkins_list_jobs,jenkins_get_job_status,jenkins_get_build_status \\
-  mcp-jenkins --url https://jenkins.example.com --bearer-token abc123
+  MCP_JENKINS_BEARER_TOKEN=abc123 \\
+  mcp-jenkins --url https://jenkins.example.com
 `)
         process.exit(0)
         break

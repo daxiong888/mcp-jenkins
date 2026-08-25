@@ -69,6 +69,14 @@ For bearer token authentication, replace the env block with:
 | **Views**               | `jenkins_list_views`, `jenkins_get_view`                                                                                                                                                                                                                                                     |
 | **Instances & admin**   | `jenkins_list_instances`, `jenkins_safe_restart`                                                                                                                                                                                                                                             |
 
+## Security / Production safety
+
+- **All 38 tools are exposed by default**, including write and destructive ones (trigger/stop/delete builds, create/delete/rename jobs, quiet down, restart). Nothing is read-only unless you make it so.
+- **Prefer an allowlist** (`MCP_JENKINS_ALLOW_TOOLS`) to lock the server down to what you actually need — it is enforced for both `tools/list` and `tools/call`. A blocklist (`MCP_JENKINS_BLOCK_TOOLS`) works, but any write tool added in a future release is exposed until you update your list.
+- **Use a dedicated, least-privilege Jenkins identity** — the server can do everything its credentials can do.
+- **Pin a reviewed version** (e.g. `@kud/mcp-jenkins@2.2.0`) for production or any write-capable setup; `@latest` is intended for evaluation and quick trials.
+- **Keep credentials out of CLI arguments** (`--api-token`, `--bearer-token`): they leak into process lists and shell history. Use `MCP_JENKINS_*` env vars or your MCP client's `env` config, and never commit tokens to version control or print them to logs.
+
 ## Development
 
 ```sh

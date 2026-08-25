@@ -59,9 +59,9 @@ When multiple instances are configured, every tool call must include `instance` 
 
 ## 🧰 Tool Filtering
 
-Control which tools are exposed to the AI using an allowlist or blocklist.
+Control which tools are exposed to the AI using an allowlist or blocklist. The filter is a security boundary: it is enforced on both `tools/list` and `tools/call`, so a filtered-out tool behaves exactly like an unknown tool.
 
-**Allowlist** — expose only specific tools:
+**Allowlist (recommended)** — expose only specific tools:
 
 ```bash
 export MCP_JENKINS_ALLOW_TOOLS="jenkins_list_jobs,jenkins_get_job_status,jenkins_get_build_status"
@@ -73,6 +73,8 @@ export MCP_JENKINS_ALLOW_TOOLS="jenkins_list_jobs,jenkins_get_job_status,jenkins
 export MCP_JENKINS_BLOCK_TOOLS="jenkins_delete_job,jenkins_trigger_build,jenkins_safe_restart"
 ```
 
+> **Note:** Prefer the allowlist for write-capable or production setups. A blocklist only hides the tools you name today — any write tool added in a future release is exposed until you update the list.
+
 If both are set, `MCP_JENKINS_ALLOW_TOOLS` takes precedence.
 
 **Read-only monitoring preset** — block all write/destructive tools:
@@ -83,24 +85,28 @@ export MCP_JENKINS_BLOCK_TOOLS="jenkins_trigger_build,jenkins_stop_build,jenkins
 
 ## 💡 Examples
 
-**All CLI args:**
+**All credentials via environment (recommended):**
 
 ```bash
-node dist/index.js --url https://jenkins.com --user admin --api-token abc123
+MCP_JENKINS_URL=https://jenkins.com MCP_JENKINS_USER=admin MCP_JENKINS_API_TOKEN=abc123 node dist/index.js
 ```
 
 **Mixed (CLI overrides env):**
 
 ```bash
-MCP_JENKINS_USER=dev_user node dist/index.js --url https://jenkins.com --api-token xyz789
-# Uses: URL from CLI, token from CLI, user from env
+MCP_JENKINS_USER=dev_user MCP_JENKINS_API_TOKEN=xyz789 node dist/index.js --url https://jenkins.com
+# Uses: URL from CLI, credentials from env
 ```
+
+> **Note:** `--api-token` / `--bearer-token` CLI flags still work, but command-line secrets are visible in process lists and shell history — pass credentials via environment variables or your MCP client's `env` config instead.
 
 ## 🔐 Security Best Practices
 
 - ✅ Use environment variables (never hardcode tokens)
+- ✅ Keep credentials out of CLI arguments — they leak into process lists and shell history
 - ✅ Use bearer tokens over basic auth when possible
 - ✅ Rotate tokens regularly
 - ✅ Use restricted tokens (limit permissions in Jenkins)
+- ✅ Prefer `MCP_JENKINS_ALLOW_TOOLS` over the blocklist for write-capable setups
 - ✅ Never commit tokens to version control
 - ✅ Protect config files (`claude_desktop_config.json`)

@@ -20,6 +20,8 @@ npm install
 npm run build
 ```
 
+> **Note:** Pass credentials via `MCP_JENKINS_*` environment variables or your client's `env` config — not `--api-token` / `--bearer-token` CLI arguments, which are visible in process lists and shell history. The examples below follow this rule.
+
 ## 🧭 Choose your environment
 
 - [Claude Code CLI](#claude-code-cli) - Command line interface
@@ -46,24 +48,24 @@ claude mcp add --transport stdio --scope user jenkins \
   -- npx --yes @kud/mcp-jenkins@latest
 ```
 
-**Via npm with CLI args:**
+**Via npm with a CLI URL arg (credentials stay in env):**
 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
+  --env MCP_JENKINS_USER=your_username \
+  --env MCP_JENKINS_API_TOKEN=your_api_token \
   -- npx --yes @kud/mcp-jenkins@latest \
-  --url https://pipeline.yourcompany.com \
-  --user your_username \
-  --api-token your_api_token
+  --url https://pipeline.yourcompany.com
 ```
 
-**Local installation with CLI args:**
+**Local installation (credentials stay in env):**
 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
-  -- node $HOME/path/to/mcp-jenkins/dist/index.js \
-  --url https://pipeline.yourcompany.com \
-  --user your_username \
-  --api-token your_api_token
+  --env MCP_JENKINS_URL=https://pipeline.yourcompany.com \
+  --env MCP_JENKINS_USER=your_username \
+  --env MCP_JENKINS_API_TOKEN=your_api_token \
+  -- node $HOME/path/to/mcp-jenkins/dist/index.js
 ```
 
 **Multiple Jenkins instances:**
@@ -129,7 +131,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
 }
 ```
 
-**Via npm with CLI args:**
+**Via npm with a CLI URL arg (credentials stay in env):**
 
 ```json
 {
@@ -140,33 +142,30 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
         "--yes",
         "@kud/mcp-jenkins@latest",
         "--url",
-        "https://pipeline.yourcompany.com",
-        "--user",
-        "your_username",
-        "--api-token",
-        "your_api_token"
-      ]
+        "https://pipeline.yourcompany.com"
+      ],
+      "env": {
+        "MCP_JENKINS_USER": "your_username",
+        "MCP_JENKINS_API_TOKEN": "your_api_token"
+      }
     }
   }
 }
 ```
 
-**Local installation with CLI args:**
+**Local installation (credentials stay in env):**
 
 ```json
 {
   "mcpServers": {
     "jenkins": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/mcp-jenkins/dist/index.js",
-        "--url",
-        "https://pipeline.yourcompany.com",
-        "--user",
-        "your_username",
-        "--api-token",
-        "your_api_token"
-      ]
+      "args": ["/absolute/path/to/mcp-jenkins/dist/index.js"],
+      "env": {
+        "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
+        "MCP_JENKINS_USER": "your_username",
+        "MCP_JENKINS_API_TOKEN": "your_api_token"
+      }
     }
   }
 }
@@ -179,14 +178,11 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": [
-        "--yes",
-        "@kud/mcp-jenkins@latest",
-        "--url",
-        "https://pipeline.yourcompany.com",
-        "--bearer-token",
-        "your_bearer_token"
-      ]
+      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "env": {
+        "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
+        "MCP_JENKINS_BEARER_TOKEN": "your_bearer_token"
+      }
     }
   }
 }
@@ -392,7 +388,9 @@ Create or edit `~/.copilot/mcp-config.json`:
 
 Then run: `copilot`
 
-### Option 2: Config File with CLI Args
+### Option 2: Config File with a CLI URL Arg
+
+Credentials stay in `env`; only the non-secret URL is passed as an argument:
 
 ```json
 {
@@ -403,48 +401,31 @@ Then run: `copilot`
         "--yes",
         "@kud/mcp-jenkins@latest",
         "--url",
-        "https://pipeline.yourcompany.com",
-        "--user",
-        "your_username",
-        "--api-token",
-        "your_api_token"
-      ]
+        "https://pipeline.yourcompany.com"
+      ],
+      "env": {
+        "MCP_JENKINS_USER": "your_username",
+        "MCP_JENKINS_API_TOKEN": "your_api_token"
+      }
     }
   }
 }
 ```
 
-### Option 3: Inline Config with CLI Args
+### Option 3: Config File Reference
 
-Pass MCP config directly via command line:
-
-```bash
-copilot --additional-mcp-config '{
-  "mcpServers": {
-    "jenkins": {
-      "command": "npx",
-      "args": [
-        "--yes", "@kud/mcp-jenkins@latest",
-        "--url", "https://pipeline.yourcompany.com",
-        "--user", "your_username",
-        "--api-token", "your_api_token"
-      ]
-    }
-  }
-}'
-```
-
-Or save to a file and reference it:
+Save the config to a file and reference it (an inline `--additional-mcp-config '{...}'` would land the whole JSON — credentials included — in your shell history):
 
 ```bash
-# Save config to jenkins-mcp.json
+# Save config to jenkins-mcp.json (keep it out of version control)
 copilot --additional-mcp-config @jenkins-mcp.json
 ```
 
-For local installation, use `"command": "node"` with path in args:
+For local installation, use `"command": "node"` with the path in args and credentials in `env`:
 
 ```json
-"args": ["/absolute/path/to/mcp-jenkins/dist/index.js", "--url", "...", "--user", "...", "--api-token", "..."]
+"args": ["/absolute/path/to/mcp-jenkins/dist/index.js"],
+"env": { "MCP_JENKINS_URL": "...", "MCP_JENKINS_USER": "...", "MCP_JENKINS_API_TOKEN": "..." }
 ```
 
 ### Option 4: Multiple Jenkins instances

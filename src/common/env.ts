@@ -55,6 +55,41 @@ const deriveInstanceName = (url: string): string => {
   }
 }
 
+// Startup validation for every configured instance URL. Error messages must
+// never echo the raw URL — it can embed credentials or internal hostnames.
+const validateInstanceUrl = (url: string): void => {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error("MCP_JENKINS_URL contains an invalid URL")
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Jenkins instance URLs must use http or https")
+  }
+  if (!parsed.hostname) {
+    throw new Error("Jenkins instance URLs must include a hostname")
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error("Jenkins instance URLs must not embed credentials")
+  }
+  if (parsed.search || parsed.hash) {
+    throw new Error("Jenkins instance URLs must not contain query or fragment")
+  }
+}
+
+// Instance names flow into tool schemas, error messages, and Map keys, so keep
+// them in a conservative, unambiguous charset.
+const INSTANCE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/
+
+const validateInstanceName = (name: string, index: number): void => {
+  if (!INSTANCE_NAME_PATTERN.test(name)) {
+    throw new Error(
+      `Invalid Jenkins instance name at position ${index + 1} — names must start with a letter or digit and contain only letters, digits, dots, underscores, and hyphens (max 64 chars)`,
+    )
+  }
+}
+
 const buildInstanceEnv = (
   url: string,
   user: string | undefined,
@@ -165,6 +200,8 @@ export const loadAllJenkinsInstances = (
   for (let i = 0; i < urls.length; i++) {
     const name = instanceNames[i]
     const url = urls[i]
+    validateInstanceUrl(url)
+    validateInstanceName(name, i)
     const user = users[i]
     const apiToken = apiTokens[i]
     const bearerToken = bearerTokens[i]

@@ -280,3 +280,121 @@ describe("resolveJenkinsInstance", () => {
     ).toEqual({ id: 1 })
   })
 })
+
+describe("loadAllJenkinsInstances — URL and instance-name validation", () => {
+  const cleanEnv = () => {
+    delete process.env["MCP_JENKINS_URL"]
+    delete process.env["MCP_JENKINS_USER"]
+    delete process.env["MCP_JENKINS_API_TOKEN"]
+    delete process.env["MCP_JENKINS_BEARER_TOKEN"]
+    delete process.env["MCP_JENKINS_ANONYMOUS"]
+    delete process.env["MCP_JENKINS_INSTANCES"]
+  }
+
+  beforeEach(cleanEnv)
+  afterEach(cleanEnv)
+
+  const withAuth = () => {
+    process.env["MCP_JENKINS_USER"] = "admin"
+    process.env["MCP_JENKINS_API_TOKEN"] = "token"
+  }
+
+  const loadError = (): Error => {
+    try {
+      loadAllJenkinsInstances({})
+    } catch (caught) {
+      return caught as Error
+    }
+    throw new Error("expected loadAllJenkinsInstances to throw")
+  }
+
+  it.each([
+    "http://jenkins.example.com",
+    "https://jenkins.example.com",
+    "https://jenkins.example.com/ci",
+    "https://jenkins.example.com/ci/",
+  ])("accepts valid URL %s and keeps its context path", (url) => {
+    process.env["MCP_JENKINS_URL"] = url
+    withAuth()
+
+    const env = loadAllJenkinsInstances({}).values().next().value
+    expect(env.JENKINS_URL).toBe(url.replace(/\/$/, ""))
+  })
+
+  it("rejects an unparseable URL even with MCP_JENKINS_INSTANCES set", () => {
+    process.env["MCP_JENKINS_INSTANCES"] = "ci"
+    process.env["MCP_JENKINS_URL"] = "not-a-url"
+    withAuth()
+
+    expect(loadError().message).not.toContain("not-a-url")
+  })
+
+  it.each(["ftp://jenkins.example.com", "file:///etc/passwd"])(
+    "rejects non-HTTP scheme %s",
+    (url) => {
+      process.env["MCP_JENKINS_URL"] = url
+      withAuth()
+
+      expect(() => loadAllJenkinsInstances({})).toThrow("http")
+    },
+  )
+
+  it("rejects URLs with embedded credentials without echoing them", () => {
+    process.env["MCP_JENKINS_URL"] = "https://ci-user:ci-pass@jenkins.example.com"
+    withAuth()
+
+    const message = loadError().message
+    expect(message).toContain("credentials")
+    expect(message).not.toContain("ci-user")
+    expect(message).not.toContain("ci-pass")
+    expect(message).not.toContain("jenkins.example.com")
+  })
+
+  it.each([
+    "https://jenkins.example.com/?token=abc123",
+    "https://jenkins.example.com/ci#fragment",
+  ])("rejects URL with query or fragment: %s", (url) => {
+    process.env["MCP_JENKINS_URL"] = url
+    withAuth()
+
+    expect(loadError().message).not.toContain(url)
+  })
+
+  it("rejects an empty instance name", () => {
+    process.env["MCP_JENKINS_INSTANCES"] = ",ci"
+    process.env["MCP_JENKINS_URL"] =
+      "https://one.example.com,https://two.example.com"
+    process.env["MCP_JENKINS_USER"] = "admin,admin"
+    process.env["MCP_JENKINS_API_TOKEN"] = "t1,t2"
+
+    expect(() => loadAllJenkinsInstances({})).toThrow("instance name")
+  })
+
+  it("rejects illegal instance names without echoing them", () => {
+    process.env["MCP_JENKINS_INSTANCES"] = "bad name!"
+    process.env["MCP_JENKINS_URL"] = "https://jenkins.example.com"
+    withAuth()
+
+    const message = loadError().message
+    expect(message).toContain("instance name")
+    expect(message).not.toContain("bad name!")
+  })
+
+  it("rejects duplicate instance names", () => {
+    process.env["MCP_JENKINS_INSTANCES"] = "ci,ci"
+    process.env["MCP_JENKINS_URL"] =
+      "https://one.example.com,https://two.example.com"
+    process.env["MCP_JENKINS_USER"] = "admin,admin"
+    process.env["MCP_JENKINS_API_TOKEN"] = "t1,t2"
+
+    expect(() => loadAllJenkinsInstances({})).toThrow("unique")
+  })
+
+  it("accepts conservative custom instance names", () => {
+    process.env["MCP_JENKINS_INSTANCES"] = "ci-2.prod_x"
+    process.env["MCP_JENKINS_URL"] = "https://jenkins.example.com"
+    withAuth()
+
+    expect(loadAllJenkinsInstances({}).has("ci-2.prod_x")).toBe(true)
+  })
+})

@@ -84,7 +84,7 @@ const { allowlist, blocklist } = loadToolFilter()
 
 if (allowlist && blocklist.length) {
   logger.warn(
-    "Both JENKINS_TOOLS and JENKINS_BLOCK_TOOLS are set — JENKINS_BLOCK_TOOLS will be ignored",
+    "Both MCP_JENKINS_ALLOW_TOOLS and MCP_JENKINS_BLOCK_TOOLS are set — MCP_JENKINS_ALLOW_TOOLS takes precedence and MCP_JENKINS_BLOCK_TOOLS will be ignored",
   )
 }
 

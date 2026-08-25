@@ -1,6 +1,7 @@
 import {
   httpGetJson,
   httpGetText,
+  httpGetTextChunk,
   httpGetBuffer,
   httpHead,
   httpPost,
@@ -114,6 +115,44 @@ interface CrumbInfo {
 
 const MAX_RECENT_BUILDS = 100
 const MAX_LIST_JOB_REQUESTS = 100
+const DEFAULT_CONSOLE_LOG_BYTES = 64 * 1024
+const MAX_CONSOLE_LOG_BYTES = 1024 * 1024
+const MAX_CONSOLE_SNIPPET_LENGTH = 10000
+
+interface ConsoleLogCursor {
+  jobName: string
+  buildNumber: number
+  offset: number
+}
+
+const encodeConsoleLogCursor = (cursor: ConsoleLogCursor): string =>
+  Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url")
+
+const decodeConsoleLogCursor = (
+  encoded: string,
+  expectedJobName: string,
+  expectedBuildNumber?: number,
+): ConsoleLogCursor => {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(encoded, "base64url").toString("utf8"),
+    ) as ConsoleLogCursor
+    if (
+      parsed.jobName !== expectedJobName ||
+      !Number.isInteger(parsed.buildNumber) ||
+      parsed.buildNumber < 1 ||
+      !Number.isInteger(parsed.offset) ||
+      parsed.offset < 0 ||
+      (expectedBuildNumber != null &&
+        parsed.buildNumber !== expectedBuildNumber)
+    ) {
+      throw new Error("mismatch")
+    }
+    return parsed
+  } catch {
+    throw Errors.invalidInput("Invalid console log cursor")
+  }
+}
 
 export class JenkinsClient {
   readonly baseUrl: string
@@ -328,26 +367,79 @@ export class JenkinsClient {
     jobName: string,
     buildNumber?: number,
     maxSnippetLength = 200,
+    cursor?: string,
+    maxBytes = DEFAULT_CONSOLE_LOG_BYTES,
   ): Promise<{
     jobName: string
     buildNumber: number
     logSnippet: string
+    logChunk: string
+    /** @deprecated Use logChunk. This alias is bounded and may be partial. */
     fullLog: string
+    nextCursor: string | null
+    hasMore: boolean
+    truncated: boolean
   }> {
-    let bn = buildNumber
+    if (
+      !Number.isInteger(maxSnippetLength) ||
+      maxSnippetLength < 0 ||
+      maxSnippetLength > MAX_CONSOLE_SNIPPET_LENGTH
+    ) {
+      throw Errors.invalidInput(
+        `maxSnippetLength must be an integer between 0 and ${MAX_CONSOLE_SNIPPET_LENGTH}`,
+      )
+    }
+    if (
+      !Number.isInteger(maxBytes) ||
+      maxBytes < 1 ||
+      maxBytes > MAX_CONSOLE_LOG_BYTES
+    ) {
+      throw Errors.invalidInput(
+        `maxBytes must be an integer between 1 and ${MAX_CONSOLE_LOG_BYTES}`,
+      )
+    }
+
+    const decodedCursor = cursor
+      ? decodeConsoleLogCursor(cursor, jobName, buildNumber)
+      : undefined
+    let bn = buildNumber ?? decodedCursor?.buildNumber
     if (bn == null) {
       bn = Number((await this.getLastBuild(jobName)).id)
     }
+    const offset = decodedCursor?.offset ?? 0
     try {
-      const fullLog = await httpGetText(
-        `${this.baseUrl}/job/${jobPath(jobName)}/${bn}/consoleText`,
+      const chunk = await httpGetTextChunk(
+        `${this.baseUrl}/job/${jobPath(jobName)}/${bn}/logText/progressiveText?start=${offset}`,
+        maxBytes,
         { headers: this.headers() },
       )
-      const snippet = fullLog
+      const snippet = chunk.text
         .trim()
         .slice(0, maxSnippetLength)
         .replace(/\r/g, "")
-      return { jobName, buildNumber: bn, logSnippet: snippet, fullLog }
+      const serverOffset = Number(chunk.headers["x-text-size"])
+      const nextOffset = offset + chunk.byteLength
+      const hasMore =
+        chunk.truncated ||
+        chunk.headers["x-more-data"]?.toLowerCase() === "true" ||
+        (Number.isFinite(serverOffset) && serverOffset > nextOffset)
+      const nextCursor = hasMore
+        ? encodeConsoleLogCursor({
+            jobName,
+            buildNumber: bn,
+            offset: nextOffset,
+          })
+        : null
+      return {
+        jobName,
+        buildNumber: bn,
+        logSnippet: snippet,
+        logChunk: chunk.text,
+        fullLog: chunk.text,
+        nextCursor,
+        hasMore,
+        truncated: chunk.truncated,
+      }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
       throw e

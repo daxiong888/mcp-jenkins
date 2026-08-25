@@ -26,6 +26,7 @@ vi.mock("../../src/common/index.js", () => {
   return {
     httpGetJson: vi.fn(),
     httpGetText: vi.fn(),
+    httpGetTextChunk: vi.fn(),
     httpPost: vi.fn(),
     logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     loadJenkinsEnv: vi.fn(() => ({
@@ -433,20 +434,64 @@ describe("JenkinsClient", () => {
   })
 
   describe("getConsoleLog", () => {
-    it("should return console log with snippet", async () => {
-      const fullLog = "Line 1\nLine 2\nLine 3\nLine 4\n".repeat(10)
-      vi.mocked(common.httpGetText).mockResolvedValue(fullLog)
+    it("should return a bounded console log chunk with a resumable cursor", async () => {
+      const logChunk = "Line 1\nLine 2\n"
+      vi.mocked(common.httpGetTextChunk).mockResolvedValue({
+        text: logChunk,
+        byteLength: Buffer.byteLength(logChunk),
+        truncated: true,
+        headers: { "x-text-size": "4096", "x-more-data": "false" },
+      })
       vi.mocked(common.httpGetJson).mockResolvedValue({
         number: 10,
         building: false,
       })
 
-      const result = await client.getConsoleLog("my-job", 10, 50)
+      const result = await client.getConsoleLog("my-job", 10, 50, undefined, 64)
 
       expect(result.jobName).toBe("my-job")
       expect(result.buildNumber).toBe(10)
-      expect(result.logSnippet).toHaveLength(50)
-      expect(result.fullLog).toBe(fullLog)
+      expect(result.logChunk).toBe(logChunk)
+      expect(result.fullLog).toBe(logChunk)
+      expect(result.hasMore).toBe(true)
+      expect(result.truncated).toBe(true)
+      expect(result.nextCursor).toEqual(expect.any(String))
+      expect(common.httpGetTextChunk).toHaveBeenCalledWith(
+        "https://jenkins.example.com/job/my-job/10/logText/progressiveText?start=0",
+        64,
+        expect.anything(),
+      )
+
+      vi.mocked(common.httpGetTextChunk).mockResolvedValueOnce({
+        text: "done\n",
+        byteLength: 5,
+        truncated: false,
+        headers: { "x-text-size": "19", "x-more-data": "false" },
+      })
+      const resumed = await client.getConsoleLog(
+        "my-job",
+        10,
+        50,
+        result.nextCursor ?? undefined,
+        64,
+      )
+      expect(common.httpGetTextChunk).toHaveBeenLastCalledWith(
+        `https://jenkins.example.com/job/my-job/10/logText/progressiveText?start=${Buffer.byteLength(logChunk)}`,
+        64,
+        expect.anything(),
+      )
+      expect(resumed.hasMore).toBe(false)
+      expect(resumed.nextCursor).toBeNull()
+
+      await expect(
+        client.getConsoleLog(
+          "another-job",
+          10,
+          50,
+          result.nextCursor ?? "",
+          64,
+        ),
+      ).rejects.toThrow("Invalid console log cursor")
     })
 
     it("should fetch last build when buildNumber not provided", async () => {
@@ -455,7 +500,12 @@ describe("JenkinsClient", () => {
         number: 15,
         building: false,
       })
-      vi.mocked(common.httpGetText).mockResolvedValue(fullLog)
+      vi.mocked(common.httpGetTextChunk).mockResolvedValue({
+        text: fullLog,
+        byteLength: Buffer.byteLength(fullLog),
+        truncated: false,
+        headers: { "x-text-size": String(Buffer.byteLength(fullLog)) },
+      })
 
       const result = await client.getConsoleLog("my-job")
 

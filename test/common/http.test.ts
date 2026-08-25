@@ -3,6 +3,7 @@ import { McpError } from "../../src/common/errors.js"
 import {
   httpGetJson,
   httpGetText,
+  httpGetTextChunk,
   httpGetBuffer,
   httpHead,
   httpPost,
@@ -87,6 +88,70 @@ describe("httpPost", () => {
     await expect(httpPost("https://jenkins.invalid/write")).rejects.toBe(
       networkError,
     )
+  })
+})
+
+describe("httpGetTextChunk", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("stops reading after the byte limit and reports a truncated chunk", async () => {
+    const cancel = vi.fn()
+    const chunks = [
+      new TextEncoder().encode("first line\nsecond line\n"),
+      new TextEncoder().encode("unread tail\n"),
+    ]
+    const read = vi
+      .fn()
+      .mockResolvedValueOnce({ done: false, value: chunks[0] })
+      .mockResolvedValueOnce({ done: false, value: chunks[1] })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "x-text-size": "4096" }),
+        body: { getReader: () => ({ read, cancel }) },
+      } as unknown as Response),
+    )
+
+    const result = await httpGetTextChunk(
+      "https://jenkins.invalid/logText/progressiveText?start=0",
+      12,
+    )
+
+    expect(Buffer.byteLength(result.text)).toBeLessThanOrEqual(12)
+    expect(result.byteLength).toBe(Buffer.byteLength(result.text))
+    expect(result.truncated).toBe(true)
+    expect(result.headers["x-text-size"]).toBe("4096")
+    expect(cancel).toHaveBeenCalled()
+  })
+
+  it("does not advance the byte cursor through a split UTF-8 code point", async () => {
+    const cancel = vi.fn()
+    const read = vi.fn().mockResolvedValueOnce({
+      done: false,
+      value: new TextEncoder().encode("abc🙂def"),
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        body: { getReader: () => ({ read, cancel }) },
+      } as unknown as Response),
+    )
+
+    const result = await httpGetTextChunk(
+      "https://jenkins.invalid/logText/progressiveText?start=0",
+      5,
+    )
+
+    expect(result.text).toBe("abc")
+    expect(result.byteLength).toBe(3)
+    expect(result.truncated).toBe(true)
   })
 })
 

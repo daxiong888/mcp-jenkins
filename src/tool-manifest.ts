@@ -196,7 +196,7 @@ export const rawTools: Tool[] = [
   {
     name: "jenkins_get_console_log",
     description:
-      "Get console log output from a build. Returns both a snippet and full log.",
+      "Get a bounded console log chunk. Use nextCursor to continue; fullLog is a deprecated alias of the bounded logChunk and may be partial.",
     inputSchema: {
       type: "object",
       properties: {
@@ -208,6 +208,26 @@ export const rawTools: Tool[] = [
           type: "integer",
           minimum: 1,
           description: "Build number (optional, defaults to last build)",
+        },
+        maxSnippetLength: {
+          type: "integer",
+          minimum: 0,
+          maximum: 10000,
+          default: 200,
+          description: "Maximum characters in logSnippet (default: 200)",
+        },
+        cursor: {
+          type: "string",
+          description:
+            "Opaque cursor returned by the previous call. It is bound to the same job and build.",
+        },
+        maxBytes: {
+          type: "integer",
+          minimum: 1,
+          maximum: 1048576,
+          default: 65536,
+          description:
+            "Maximum UTF-8 bytes returned in this chunk, from 1 byte through 1 MiB (default: 65536)",
         },
       },
       required: ["jobName"],

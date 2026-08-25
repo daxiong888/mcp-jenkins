@@ -43,6 +43,97 @@ export const httpGetText = async (url: string, init: RequestInit & { timeoutMs?:
   }
 };
 
+export interface HttpTextChunk {
+  text: string;
+  byteLength: number;
+  truncated: boolean;
+  headers: Record<string, string | null>;
+}
+
+// Read at most maxBytes of decoded UTF-8 text without buffering an unbounded
+// response. Up to four look-ahead bytes are retained only to detect truncation
+// and avoid ending the returned cursor in the middle of a UTF-8 code point.
+export const httpGetTextChunk = async (
+  url: string,
+  maxBytes: number,
+  init: RequestInit & { timeoutMs?: number } = {},
+): Promise<HttpTextChunk> => {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), init.timeoutMs ?? 10000);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    throwForStatus(res);
+    const headers = Object.fromEntries(res.headers.entries());
+    const reader = res.body?.getReader();
+
+    if (!reader) {
+      return {
+        text: "",
+        byteLength: 0,
+        truncated: false,
+        headers,
+      };
+    }
+
+    const chunks: Buffer[] = [];
+    const readLimit = maxBytes + 4;
+    let collected = 0;
+    let done = false;
+    let truncated = false;
+
+    while (!done && collected < readLimit) {
+      const next = await reader.read();
+      done = next.done;
+      if (done || !next.value) break;
+
+      const remaining = readLimit - collected;
+      const take = Math.min(next.value.byteLength, remaining);
+      chunks.push(
+        Buffer.from(next.value.buffer, next.value.byteOffset, take),
+      );
+      collected += take;
+      if (take < next.value.byteLength || collected >= readLimit) {
+        truncated = true;
+        break;
+      }
+    }
+
+    if (truncated) await reader.cancel();
+
+    const raw = Buffer.concat(chunks, collected);
+    let byteLength = Math.min(raw.length, maxBytes);
+    let text: string | undefined;
+    for (let trim = 0; trim <= 3 && byteLength - trim >= 0; trim += 1) {
+      try {
+        const candidateLength = byteLength - trim;
+        text = new TextDecoder("utf-8", { fatal: true }).decode(
+          raw.subarray(0, candidateLength),
+        );
+        byteLength = candidateLength;
+        break;
+      } catch {
+        // A valid UTF-8 code point is at most four bytes, so only the trailing
+        // boundary can require adjustment for Jenkins' UTF-8 console output.
+      }
+    }
+    if (text === undefined) {
+      text = raw.subarray(0, byteLength).toString("utf8");
+    }
+
+    return {
+      text,
+      byteLength,
+      truncated: truncated || raw.length > byteLength,
+      headers,
+    };
+  } catch (e: any) {
+    if (e.name === "AbortError") throw Errors.timeout();
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
+};
+
 export const httpPost = async (url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<{ status: number; headers: Record<string, string | null> }> => {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), init.timeoutMs ?? 10000);

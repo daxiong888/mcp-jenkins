@@ -154,6 +154,20 @@ const decodeConsoleLogCursor = (
   }
 }
 
+const queueIdFromLocation = (
+  location: string | null,
+  baseUrl: string,
+): number | null => {
+  if (!location) return null
+  try {
+    const pathname = new URL(location, `${baseUrl}/`).pathname
+    const match = pathname.match(/\/queue\/item\/(\d+)\/?$/)
+    return match ? Number(match[1]) : null
+  } catch {
+    return null
+  }
+}
+
 export class JenkinsClient {
   readonly baseUrl: string
   private authHeader: string | undefined
@@ -483,7 +497,11 @@ export class JenkinsClient {
   async triggerBuild(
     jobName: string,
     params?: Record<string, any>,
-  ): Promise<{ jobName: string; queueUrl: string | null }> {
+  ): Promise<{
+    jobName: string
+    queueUrl: string | null
+    queueId: number | null
+  }> {
     const crumb = await this.ensureCrumb()
     const isParameterized = params && Object.keys(params).length > 0
     const path = isParameterized ? "buildWithParameters" : "build"
@@ -500,7 +518,11 @@ export class JenkinsClient {
     try {
       const res = await httpPost(url, { headers, body })
       const queueUrl = res.headers["location"] || null
-      return { jobName, queueUrl }
+      return {
+        jobName,
+        queueUrl,
+        queueId: queueIdFromLocation(queueUrl, this.baseUrl),
+      }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
       throw e
@@ -1145,6 +1167,7 @@ export class JenkinsClient {
     jobName: string
     buildNumber: number
     queueUrl: string | null
+    queueId: number | null
   }> {
     const crumb = await this.ensureCrumb()
     const headers: Record<string, string> = this.headers()
@@ -1162,7 +1185,13 @@ export class JenkinsClient {
     if (res.status === 404) throw Errors.jobNotFound(jobName)
     if (res.status >= 400)
       throw Errors.unexpected(`Replay failed with status ${res.status}`)
-    return { jobName, buildNumber, queueUrl: res.headers["location"] || null }
+    const queueUrl = res.headers["location"] || null
+    return {
+      jobName,
+      buildNumber,
+      queueUrl,
+      queueId: queueIdFromLocation(queueUrl, this.baseUrl),
+    }
   }
 }
 

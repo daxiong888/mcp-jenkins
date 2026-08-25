@@ -527,6 +527,7 @@ describe("JenkinsClient", () => {
       expect(result.queueUrl).toBe(
         "https://jenkins.example.com/queue/item/123/",
       )
+      expect(result.queueId).toBe(123)
       expect(common.httpPost).toHaveBeenCalledWith(
         "https://jenkins.example.com/job/my-job/build",
         expect.objectContaining({
@@ -1070,6 +1071,7 @@ describe("JenkinsClient", () => {
         jobName: "my-pipeline",
         buildNumber: 5,
         queueUrl: "https://jenkins.example.com/queue/item/77/",
+        queueId: 77,
       })
       expect(common.httpPost).toHaveBeenCalledWith(
         "https://jenkins.example.com/job/my-pipeline/5/replay/rebuild",
@@ -1098,6 +1100,7 @@ describe("JenkinsClient", () => {
         jobName: "my-pipeline",
         buildNumber: 10,
         queueUrl: "https://jenkins.example.com/queue/item/88/",
+        queueId: 88,
       })
       expect(common.httpPost).toHaveBeenCalledWith(
         "https://jenkins.example.com/job/my-pipeline/10/replay/rebuild",
@@ -1125,6 +1128,7 @@ describe("JenkinsClient", () => {
       const result = await client.replayBuild("my-pipeline", 3)
 
       expect(result.queueUrl).toBeNull()
+      expect(result.queueId).toBeNull()
     })
 
     it("should throw job not found error on 404", async () => {

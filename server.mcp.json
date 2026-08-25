@@ -33,7 +33,7 @@
     },
     {
       "name": "jenkins_get_console_log",
-      "description": "Get console log output from a build. Returns both a snippet and full log."
+      "description": "Get a bounded console log chunk. Use nextCursor to continue; fullLog is a deprecated alias of the bounded logChunk and may be partial."
     },
     {
       "name": "jenkins_trigger_build",

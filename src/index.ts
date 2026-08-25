@@ -270,7 +270,6 @@ try {
     )
     logger.info("Jenkins client initialized", {
       instance: name,
-      url: env.JENKINS_URL,
       authType: env.JENKINS_ANONYMOUS
         ? "anonymous"
         : env.JENKINS_BEARER_TOKEN
@@ -279,7 +278,7 @@ try {
     })
   }
 } catch (error: any) {
-  logger.error("Failed to initialize Jenkins clients", { error: error.message })
+  logger.error("Failed to initialize Jenkins clients", { reason: error.message })
   process.exit(1)
 }
 
@@ -331,8 +330,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   } catch (error: any) {
     logger.error("Tool execution failed", {
       tool: name,
-      error: error.message,
       code: error.code,
+      status: error.status,
     })
 
     if (error instanceof McpError) {
@@ -355,6 +354,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error("Fatal server error", { error: String(error) })
+  logger.error("Fatal server error", {
+    code: error?.code,
+    status: error?.status,
+  })
   process.exit(1)
 })

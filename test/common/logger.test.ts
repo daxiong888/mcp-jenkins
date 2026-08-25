@@ -56,4 +56,23 @@ describe("logger", () => {
     )
     expect(levels).toEqual(["info", "warn", "error"])
   })
+
+  it("redacts Jenkins connection and response secrets", () => {
+    logger.error("failed at https://private.jenkins.example.com/job/release", {
+      url: "https://private.jenkins.example.com",
+      username: "private-user",
+      apiToken: "private-api-token",
+      headers: { Authorization: "Bearer private-auth-token" },
+      responseBody: "private-response-body",
+      detail: "Bearer private-detail-token",
+    })
+
+    const raw = stderrSpy.mock.calls[0][0] as string
+    expect(raw).not.toContain("private.jenkins.example.com")
+    expect(raw).not.toContain("private-user")
+    expect(raw).not.toContain("private-api-token")
+    expect(raw).not.toContain("private-auth-token")
+    expect(raw).not.toContain("private-response-body")
+    expect(raw).not.toContain("private-detail-token")
+  })
 })

@@ -311,8 +311,8 @@ export class JenkinsClient {
       const crumb = (await res.json()) as CrumbInfo
       this.crumb = crumb
       return crumb
-    } catch (e: any) {
-      logger.warn("Crumb fetch failed (continuing)", { error: String(e) })
+    } catch {
+      logger.warn("Crumb fetch failed (continuing)")
       return undefined
     }
   }

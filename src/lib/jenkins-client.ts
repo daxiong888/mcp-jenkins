@@ -2,6 +2,7 @@ import {
   httpGetJson,
   httpGetText,
   httpGetBuffer,
+  httpHead,
   httpPost,
   Errors,
   McpError,
@@ -732,16 +733,10 @@ export class JenkinsClient {
 
   // Get Jenkins version
   async getVersion(): Promise<{ version: string }> {
-    try {
-      const res = await fetch(`${this.baseUrl}/api/json`, {
-        method: "HEAD",
-        headers: this.headers(),
-      })
-      const version = res.headers.get("x-jenkins") || "unknown"
-      return { version }
-    } catch (e: any) {
-      throw e
-    }
+    const res = await httpHead(`${this.baseUrl}/api/json`, {
+      headers: this.headers(),
+    })
+    return { version: res.headers["x-jenkins"] || "unknown" }
   }
 
   // Get installed plugins

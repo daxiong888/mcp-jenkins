@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { McpError } from "../../src/common/errors.js"
-import { httpPost } from "../../src/common/http.js"
+import {
+  httpGetJson,
+  httpGetText,
+  httpGetBuffer,
+  httpHead,
+  httpPost,
+} from "../../src/common/http.js"
 
 const response = (status: number, body = "sensitive response body") =>
   ({
@@ -79,6 +85,123 @@ describe("httpPost", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(networkError))
 
     await expect(httpPost("https://jenkins.invalid/write")).rejects.toBe(
+      networkError,
+    )
+  })
+})
+
+const readResponse = (status: number, body = "sensitive response body") =>
+  ({
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers({ "x-jenkins": "2.462.3" }),
+    json: vi.fn().mockResolvedValue({ parsed: body }),
+    text: vi.fn().mockResolvedValue(body),
+    arrayBuffer: vi.fn().mockResolvedValue(new TextEncoder().encode(body).buffer),
+  }) as unknown as Response
+
+const readHelpers = [
+  ["httpGetJson", httpGetJson],
+  ["httpGetText", httpGetText],
+  ["httpGetBuffer", httpGetBuffer],
+] as const
+
+describe.each(readHelpers)("%s", (_name, helper) => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("accepts HTTP 200", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(readResponse(200)))
+    await expect(
+      helper("https://jenkins.invalid/api/json"),
+    ).resolves.toBeDefined()
+  })
+
+  it.each([
+    [401, "AUTH_FAILED"],
+    [403, "PERMISSION_DENIED"],
+    [404, "HTTP_ERROR"],
+    [500, "HTTP_ERROR"],
+  ])("maps HTTP %s to %s without leaking URL or body", async (status, code) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(readResponse(status)))
+
+    const error = await helper(
+      "https://jenkins.invalid/read?token=secret-token",
+      { headers: { Authorization: "Bearer secret-token" } },
+    ).catch((caught) => caught as McpError)
+
+    expect(error).toBeInstanceOf(McpError)
+    expect(error.code).toBe(code)
+    expect(error.status).toBe(status)
+    expect(error.message).not.toContain("secret-token")
+    expect(error.message).not.toContain("jenkins.invalid")
+    expect(error.message).not.toContain("sensitive response body")
+  })
+
+  it("preserves timeout mapping", async () => {
+    const abortError = Object.assign(new Error("aborted"), {
+      name: "AbortError",
+    })
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError))
+
+    await expect(helper("https://jenkins.invalid/read")).rejects.toMatchObject({
+      code: "TIMEOUT",
+      status: 504,
+    })
+  })
+
+  it("preserves network failures", async () => {
+    const networkError = new TypeError("fetch failed")
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(networkError))
+
+    await expect(helper("https://jenkins.invalid/read")).rejects.toBe(
+      networkError,
+    )
+  })
+})
+
+describe("httpHead", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("returns status and headers on HTTP 200", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(readResponse(200)))
+
+    const res = await httpHead("https://jenkins.invalid/api/json")
+    expect(res.status).toBe(200)
+    expect(res.headers["x-jenkins"]).toBe("2.462.3")
+  })
+
+  it.each([
+    [401, "AUTH_FAILED"],
+    [403, "PERMISSION_DENIED"],
+    [500, "HTTP_ERROR"],
+  ])("maps HTTP %s to %s", async (status, code) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(readResponse(status)))
+
+    await expect(
+      httpHead("https://jenkins.invalid/api/json?token=secret-token"),
+    ).rejects.toMatchObject({ code, status })
+  })
+
+  it("preserves timeout mapping", async () => {
+    const abortError = Object.assign(new Error("aborted"), {
+      name: "AbortError",
+    })
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError))
+
+    await expect(
+      httpHead("https://jenkins.invalid/api/json"),
+    ).rejects.toMatchObject({ code: "TIMEOUT", status: 504 })
+  })
+
+  it("preserves network failures", async () => {
+    const networkError = new TypeError("fetch failed")
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(networkError))
+
+    await expect(httpHead("https://jenkins.invalid/api/json")).rejects.toBe(
       networkError,
     )
   })

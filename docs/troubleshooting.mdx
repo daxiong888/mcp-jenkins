@@ -43,8 +43,10 @@ claude mcp get jenkins
 
 ```bash
 export MCP_JENKINS_URL=https://pipeline.yourcompany.com
-export MCP_JENKINS_USER=your_username
-export MCP_JENKINS_API_TOKEN=your_token
+# Credentials (MCP_JENKINS_USER + MCP_JENKINS_API_TOKEN, or
+# MCP_JENKINS_BEARER_TOKEN) must already be in the environment — injected via
+# your MCP client's env config or a secret manager. Never type token values on
+# an interactive command line: they land in shell history.
 
 npm run inspect:dev
 ```

@@ -33,10 +33,10 @@ CI/CD workflows, with native integration for Claude Desktop and the Claude Code 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL=https://your-jenkins.com \
-  --env MCP_JENKINS_USER=your_username \
-  --env MCP_JENKINS_API_TOKEN=your_token \
   -- npx --yes @kud/mcp-jenkins@latest
 ```
+
+Then add `MCP_JENKINS_USER`/`MCP_JENKINS_API_TOKEN` (or `MCP_JENKINS_BEARER_TOKEN`) to the generated client config's `env` block — token values on a command line land in shell history. See [Installation](/projects/mcp-jenkins/docs/installation).
 
 ✅ Done! Now you can use Jenkins commands in your AI assistant.
 

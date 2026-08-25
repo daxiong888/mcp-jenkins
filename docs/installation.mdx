@@ -20,7 +20,7 @@ npm install
 npm run build
 ```
 
-> **Note:** Pass credentials via `MCP_JENKINS_*` environment variables or your client's `env` config — not `--api-token` / `--bearer-token` CLI arguments, which are visible in process lists and shell history. The examples below follow this rule.
+> **Note:** Keep credentials off the command line entirely. `--api-token` / `--bearer-token` CLI arguments are visible in process lists, and any interactive command carrying a token — including `--env KEY=value` or `VAR=value` prefixes — lands in shell history. Put credentials in your MCP client's `env` config (a local config file — restrict its permissions and never commit it) or inject them from a secret manager. The command-line examples below therefore show only non-secret values.
 
 ## 🧭 Choose your environment
 
@@ -43,28 +43,22 @@ npm run build
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL=https://pipeline.yourcompany.com \
-  --env MCP_JENKINS_USER=your_username \
-  --env MCP_JENKINS_API_TOKEN=your_api_token \
   -- npx --yes @kud/mcp-jenkins@latest
 ```
 
-**Via npm with a CLI URL arg (credentials stay in env):**
+**Via npm with a CLI URL arg:**
 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
-  --env MCP_JENKINS_USER=your_username \
-  --env MCP_JENKINS_API_TOKEN=your_api_token \
   -- npx --yes @kud/mcp-jenkins@latest \
   --url https://pipeline.yourcompany.com
 ```
 
-**Local installation (credentials stay in env):**
+**Local installation:**
 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL=https://pipeline.yourcompany.com \
-  --env MCP_JENKINS_USER=your_username \
-  --env MCP_JENKINS_API_TOKEN=your_api_token \
   -- node $HOME/path/to/mcp-jenkins/dist/index.js
 ```
 
@@ -73,11 +67,11 @@ claude mcp add --transport stdio --scope user jenkins \
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL="https://pipeline.yourcompany.com,https://scheduler.yourcompany.com" \
-  --env MCP_JENKINS_USER="your_username,your_username" \
-  --env MCP_JENKINS_API_TOKEN="token1,token2" \
   -- npx --yes @kud/mcp-jenkins@latest
 # Instances named "pipeline" and "scheduler" automatically from hostnames
 ```
+
+These commands carry no credentials: after registering, add `MCP_JENKINS_USER`/`MCP_JENKINS_API_TOKEN` (or `MCP_JENKINS_BEARER_TOKEN`) to the generated client config's `env` block — see the JSON examples below — or inject them from a secret manager.
 
 Verify: `claude mcp list` should show `jenkins`
 

@@ -35,18 +35,11 @@ Store the token securely - you'll need it for configuration:
 
 ## ⚖️ Bearer Token vs Basic Auth
 
-**Bearer Token (Recommended):**
+**Bearer Token (Recommended):** set `MCP_JENKINS_BEARER_TOKEN` in your MCP client's `env` config.
 
-```bash
---env MCP_JENKINS_BEARER_TOKEN=your_token
-```
+**Basic Auth:** set `MCP_JENKINS_USER` and `MCP_JENKINS_API_TOKEN` in your MCP client's `env` config.
 
-**Basic Auth:**
-
-```bash
---env MCP_JENKINS_USER=your_username
---env MCP_JENKINS_API_TOKEN=your_token
-```
+Inject either via the client config or a secret manager — never on an interactive command line, where token values land in shell history.
 
 ## 🕶️ Anonymous Instances
 

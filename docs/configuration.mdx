@@ -27,9 +27,8 @@ Connect to more than one Jenkins server in a single MCP entry using comma or pip
 
 ```bash
 export MCP_JENKINS_URL="https://pipeline.yourcompany.com,https://scheduler.yourcompany.com"
-export MCP_JENKINS_USER="your_username,your_username"
-export MCP_JENKINS_API_TOKEN="token1,token2"
 # Instances are automatically named "pipeline" and "scheduler"
+# Credentials are NOT set here — see the note below.
 ```
 
 **Custom naming with `MCP_JENKINS_INSTANCES`:**
@@ -39,10 +38,10 @@ Use `MCP_JENKINS_INSTANCES` when you want explicit names (e.g., the hostname isn
 ```bash
 export MCP_JENKINS_INSTANCES="ci,prod"
 export MCP_JENKINS_URL="https://jenkins.yourcompany.com/ci,https://jenkins.yourcompany.com/prod"
-export MCP_JENKINS_USER="your_username,your_username"
-export MCP_JENKINS_API_TOKEN="token1,token2"
 # Instances are named "ci" and "prod"
 ```
+
+Credentials (`MCP_JENKINS_USER`, `MCP_JENKINS_API_TOKEN` or `MCP_JENKINS_BEARER_TOKEN`) must also be provided — positionally, one value per URL — but inject them via your MCP client's `env` config or a secret manager, never on an interactive command line: both `--api-token` flags and `VAR=value` prefixes land in shell history.
 
 The number of values in `MCP_JENKINS_INSTANCES` must match the number of URLs.
 
@@ -85,28 +84,31 @@ export MCP_JENKINS_BLOCK_TOOLS="jenkins_trigger_build,jenkins_stop_build,jenkins
 
 ## 💡 Examples
 
-**All credentials via environment (recommended):**
+**Credentials pre-injected (recommended):**
 
 ```bash
-MCP_JENKINS_URL=https://jenkins.com MCP_JENKINS_USER=admin MCP_JENKINS_API_TOKEN=abc123 node dist/index.js
+# Assumes MCP_JENKINS_URL and credentials (MCP_JENKINS_USER + MCP_JENKINS_API_TOKEN,
+# or MCP_JENKINS_BEARER_TOKEN) are already in the environment — set via your MCP
+# client's env config, a secret manager, or a service manager.
+node dist/index.js
 ```
 
-**Mixed (CLI overrides env):**
+**Non-secret URL on the CLI, credentials from the environment:**
 
 ```bash
-MCP_JENKINS_USER=dev_user MCP_JENKINS_API_TOKEN=xyz789 node dist/index.js --url https://jenkins.com
-# Uses: URL from CLI, credentials from env
+node dist/index.js --url https://jenkins.com
+# Uses: URL from CLI, credentials from the pre-configured environment
 ```
 
-> **Note:** `--api-token` / `--bearer-token` CLI flags still work, but command-line secrets are visible in process lists and shell history — pass credentials via environment variables or your MCP client's `env` config instead.
+> **Note:** `--api-token` / `--bearer-token` CLI flags still work, but secrets on a command line are visible in process lists (argv) — and any interactive command carrying a token, whether as a flag or a `VAR=value` prefix, lands in shell history. Inject credentials via your MCP client's `env` config or a secret manager instead.
 
 ## 🔐 Security Best Practices
 
-- ✅ Use environment variables (never hardcode tokens)
-- ✅ Keep credentials out of CLI arguments — they leak into process lists and shell history
+- ✅ Inject credentials via client `env` config or a secret manager (never hardcode tokens)
+- ✅ Keep credentials off the command line entirely — flags leak into process lists, and token-bearing commands (including `VAR=value` prefixes) land in shell history
 - ✅ Use bearer tokens over basic auth when possible
 - ✅ Rotate tokens regularly
 - ✅ Use restricted tokens (limit permissions in Jenkins)
 - ✅ Prefer `MCP_JENKINS_ALLOW_TOOLS` over the blocklist for write-capable setups
 - ✅ Never commit tokens to version control
-- ✅ Protect config files (`claude_desktop_config.json`)
+- ✅ Protect config files (`claude_desktop_config.json`) — they contain your credentials; restrict permissions and never commit them

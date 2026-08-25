@@ -222,14 +222,12 @@ export class JenkinsClient {
   // example, Sandbox/application-sandbox).
   //
   // `recursive` defaults to false, and must stay that way. Traversal awaits
-  // sequentially, one HTTP round-trip per container, with no concurrency and no
-  // request budget -- so a tree of 200 folders costs 200 serial requests. With a
-  // true default, every existing `listJobs()` call site would silently acquire
-  // that cost without a single character changing at the call site, so neither
-  // the diff nor the compiler would flag one. `searchJobs()` passes straight
-  // through and filters in memory, which would turn a sub-second tool into a
-  // multi-minute crawl of the whole instance. Recursive-by-default only becomes
-  // safe alongside bounded concurrency and a total-request cap that fails loudly.
+  // sequentially, one HTTP round-trip per container. The hard request budget
+  // prevents an unbounded crawl, but a permitted 100-container traversal can
+  // still take substantial time. With a true default, every existing
+  // `listJobs()` call site would silently acquire that cost without a single
+  // character changing at the call site, so neither the diff nor the compiler
+  // would flag one. `searchJobs()` also filters only after traversal completes.
   async listJobs(options: ListJobsOptions = {}): Promise<JenkinsJob[]> {
     const folder = options.folder?.trim().replace(/^\/+|\/+$/g, "") ?? ""
     const recursive = options.recursive ?? false

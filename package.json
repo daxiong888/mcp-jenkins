@@ -42,6 +42,7 @@
   "homepage": "https://kud.github.io/mcp-jenkins",
   "author": "kud",
   "license": "MIT",
+  "packageManager": "npm@11.6.2",
   "engines": {
     "node": ">=20.0.0"
   },

@@ -53,6 +53,14 @@ export const rawTools: Tool[] = [
           minimum: 0,
           maximum: 100,
         },
+        maxRequests: {
+          type: "integer",
+          description:
+            "Maximum Jenkins API requests for this listing, from 1 through 100 (default: 100). Recursive traversal fails explicitly before exceeding the budget.",
+          default: 100,
+          minimum: 1,
+          maximum: 100,
+        },
         includeFolders: {
           type: "boolean",
           description: "Include folders in results (default: true)",
@@ -91,6 +99,14 @@ export const rawTools: Tool[] = [
             "Maximum folder depth to traverse, from 0 through 100 (default: 10)",
           default: 10,
           minimum: 0,
+          maximum: 100,
+        },
+        maxRequests: {
+          type: "integer",
+          description:
+            "Maximum Jenkins API requests for this search, from 1 through 100 (default: 100). Recursive traversal fails explicitly before exceeding the budget.",
+          default: 100,
+          minimum: 1,
           maximum: 100,
         },
         includeFolders: {

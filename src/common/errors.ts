@@ -34,6 +34,12 @@ export const Errors = {
     new McpError("ARTIFACT_NOT_FOUND", `Artifact not found: ${path}`, 404),
   invalidInput: (message: string) =>
     new McpError("INVALID_INPUT", message, 400),
+  listingLimitExceeded: (maxRequests: number) =>
+    new McpError(
+      "LISTING_LIMIT_EXCEEDED",
+      `Recursive Jenkins job listing exceeded its request budget of ${maxRequests}`,
+      422,
+    ),
   unexpected: (message: string) => new McpError("UNEXPECTED", message, 500),
 }
 

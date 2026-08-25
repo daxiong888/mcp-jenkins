@@ -96,6 +96,7 @@ export interface ListJobsOptions {
   folder?: string
   recursive?: boolean
   maxDepth?: number
+  maxRequests?: number
   includeFolders?: boolean
 }
 
@@ -112,6 +113,7 @@ interface CrumbInfo {
 }
 
 const MAX_RECENT_BUILDS = 100
+const MAX_LIST_JOB_REQUESTS = 100
 
 export class JenkinsClient {
   readonly baseUrl: string
@@ -185,9 +187,20 @@ export class JenkinsClient {
     const requested = options.maxDepth ?? 10
     const requestedDepth = Number.isFinite(requested) ? requested : 10
     const maxDepth = Math.min(Math.max(Math.floor(requestedDepth), 0), 100)
+    const maxRequests = options.maxRequests ?? MAX_LIST_JOB_REQUESTS
+    if (
+      !Number.isInteger(maxRequests) ||
+      maxRequests < 1 ||
+      maxRequests > MAX_LIST_JOB_REQUESTS
+    ) {
+      throw Errors.invalidInput(
+        `maxRequests must be an integer between 1 and ${MAX_LIST_JOB_REQUESTS}`,
+      )
+    }
     const jobs: JenkinsJob[] = []
     const visited = new Set<string>()
     const tree = "jobs[name,url,_class,jobs[name]]"
+    let requestCount = 0
 
     const readContainer = async (
       parentFullName: string,
@@ -195,6 +208,11 @@ export class JenkinsClient {
     ): Promise<void> => {
       if (visited.has(parentFullName)) return
       visited.add(parentFullName)
+
+      if (requestCount >= maxRequests) {
+        throw Errors.listingLimitExceeded(maxRequests)
+      }
+      requestCount += 1
 
       const path = parentFullName
         ? `/job/${jobPath(parentFullName)}/api/json?tree=${tree}`

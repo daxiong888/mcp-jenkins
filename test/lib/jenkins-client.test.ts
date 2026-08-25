@@ -40,6 +40,10 @@ vi.mock("../../src/common/index.js", () => {
       artifactNotFound: (path: string) =>
         new Error(`Artifact not found: ${path}`),
       invalidInput: (msg: string) => new Error(msg),
+      listingLimitExceeded: (maxRequests: number) =>
+        new Error(
+          `Recursive Jenkins job listing exceeded its request budget of ${maxRequests}`,
+        ),
       unexpected: (msg: string) => new Error(msg),
     },
   }
@@ -156,6 +160,35 @@ describe("JenkinsClient", () => {
         "https://jenkins.example.com/job/Sandbox/job/Team/api/json?tree=jobs[name,url,_class,jobs[name]]",
         expect.anything(),
       )
+    })
+
+    it("should fail before recursive traversal exceeds its request budget", async () => {
+      vi.mocked(common.httpGetJson)
+        .mockResolvedValueOnce({
+          jobs: [
+            {
+              name: "Folder-1",
+              url: "https://jenkins.example.com/job/Folder-1/",
+              _class: "com.cloudbees.hudson.plugins.folder.Folder",
+              jobs: [{ name: "Folder-2" }],
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          jobs: [
+            {
+              name: "Folder-2",
+              url: "https://jenkins.example.com/job/Folder-1/job/Folder-2/",
+              _class: "com.cloudbees.hudson.plugins.folder.Folder",
+              jobs: [{ name: "deep-job" }],
+            },
+          ],
+        })
+
+      await expect(
+        client.listJobs({ recursive: true, maxRequests: 2 }),
+      ).rejects.toThrow("request budget of 2")
+      expect(common.httpGetJson).toHaveBeenCalledTimes(2)
     })
 
     // Recursion is opt-in because traversal is one sequential request per

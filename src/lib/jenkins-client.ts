@@ -1,6 +1,7 @@
 import {
   httpGetJson,
   httpGetText,
+  httpGetBuffer,
   httpPost,
   Errors,
   McpError,
@@ -46,6 +47,30 @@ const createItemUrl = (baseUrl: string, fullName: string): string => {
     lastSlash === -1 ? normalized : normalized.slice(lastSlash + 1)
   const containerPath = parentName ? `/job/${jobPath(parentName)}` : ""
   return `${baseUrl}${containerPath}/createItem?name=${encodeURIComponent(itemName)}`
+}
+
+// Artifact relative paths come from Jenkins (or the caller) and are spliced
+// into a URL. Dot segments survive encodeURIComponent and would be
+// URL-normalized into an escape from the artifact directory, backslashes and
+// absolute paths change URL semantics, and raw spaces/`+` corrupt the request.
+// Validate, then encode segment by segment.
+const artifactPath = (relativePath: string): string => {
+  if (
+    !relativePath ||
+    relativePath.startsWith("/") ||
+    relativePath.includes("\\")
+  ) {
+    throw Errors.invalidInput(
+      "Artifact path must be a relative path without backslashes",
+    )
+  }
+  const segments = relativePath.split("/")
+  if (segments.some((s) => !s || s === "." || s === "..")) {
+    throw Errors.invalidInput(
+      "Artifact path must not contain empty or dot path segments",
+    )
+  }
+  return segments.map(encodeURIComponent).join("/")
 }
 
 export interface NormalizedBuild {
@@ -376,7 +401,7 @@ export class JenkinsClient {
       return data.artifacts.map((a: any) => ({
         fileName: a.fileName,
         relativePath: a.relativePath,
-        url: `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/artifact/${a.relativePath}`,
+        url: `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/artifact/${artifactPath(a.relativePath)}`,
       }))
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
@@ -394,10 +419,11 @@ export class JenkinsClient {
     size: number
     base64: string
   }> {
-    const url = `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/artifact/${relativePath}`
+    // Validating the path while building the URL rejects illegal input before
+    // any request is sent; the buffer keeps binary artifacts byte-exact.
+    const url = `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/artifact/${artifactPath(relativePath)}`
     try {
-      const data = await httpGetText(url, { headers: this.headers() })
-      const buf = Buffer.from(data, "utf8")
+      const buf = await httpGetBuffer(url, { headers: this.headers() })
       return {
         fileName: relativePath.split("/").pop() || relativePath,
         relativePath,

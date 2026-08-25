@@ -17,6 +17,7 @@ import {
   CliArgs,
 } from "./common/index.js"
 import { JenkinsClient } from "./lib/jenkins-client.js"
+import { serverInfo } from "./server-info.js"
 import { getJobStatus } from "./tools/get-job-status.js"
 import { getJobParameters } from "./tools/get-job-parameters.js"
 import { getBuildStatus } from "./tools/get-build-status.js"
@@ -238,10 +239,7 @@ Examples:
 
 // Create MCP server instance
 const server = new Server(
-  {
-    name: "jenkins-mcp-server",
-    version: "0.9.1",
-  },
+  serverInfo,
   {
     capabilities: {
       tools: {},

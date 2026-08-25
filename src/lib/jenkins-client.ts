@@ -9,13 +9,30 @@ import {
 } from "../common/index.js"
 
 const jobPath = (name: string): string =>
-  name.split("/").map(encodeURIComponent).join("/job/")
+  name
+    .split("/")
+    .map((segment) => {
+      // encodeURIComponent leaves dot segments untouched and fetch URL-normalizes
+      // them, so "a/../b" would silently escape the folder. Reject them instead.
+      if (segment === "." || segment === "..") {
+        throw Errors.invalidInput(
+          "Job name must not contain . or .. path segments",
+        )
+      }
+      return encodeURIComponent(segment)
+    })
+    .join("/job/")
 
 const normalizeJobFullName = (name: string): string => {
   const fullName = name.trim().replace(/^\/+|\/+$/g, "")
-  if (!fullName || fullName.split("/").some((segment) => !segment)) {
+  if (
+    !fullName ||
+    fullName
+      .split("/")
+      .some((segment) => !segment || segment === "." || segment === "..")
+  ) {
     throw Errors.invalidInput(
-      "Job name must be a non-empty Jenkins full name without empty path segments",
+      "Job name must be a non-empty Jenkins full name without empty or dot path segments",
     )
   }
   return fullName
@@ -565,14 +582,15 @@ export class JenkinsClient {
   async deleteJob(
     jobName: string,
   ): Promise<{ jobName: string; deleted: boolean }> {
+    // Build (and thereby validate) the URL before the crumb probe, so an
+    // illegal job name is rejected without sending any request.
+    const url = `${this.baseUrl}/job/${jobPath(jobName)}/doDelete`
     const crumb = await this.ensureCrumb()
     const headers: Record<string, string> = this.headers()
     if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
 
     try {
-      await httpPost(`${this.baseUrl}/job/${jobPath(jobName)}/doDelete`, {
-        headers,
-      })
+      await httpPost(url, { headers })
       return { jobName, deleted: true }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)

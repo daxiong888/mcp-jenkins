@@ -16,6 +16,7 @@ import {
   resolveJenkinsInstance,
   exposedToolNames,
   assertToolExposed,
+  buildInputValidators,
   CliArgs,
 } from "./common/index.js"
 import { JenkinsClient } from "./lib/jenkins-client.js"
@@ -103,6 +104,9 @@ const tools = filteredRawTools.map(injectInstance)
 // Call-side enforcement of the same filter: tools/list visibility alone is not
 // a boundary, so names outside this set are rejected as unknown tools.
 const exposedTools = exposedToolNames(filteredRawTools)
+// Runtime argument validation compiled from the advertised (instance-injected)
+// schemas; the MCP SDK does not validate tool arguments for us.
+const inputValidators = buildInputValidators(tools)
 
 // Map tool names to handler functions
 type ToolHandler = (client: JenkinsClient, input: any) => Promise<any>
@@ -296,6 +300,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     assertToolExposed(exposedTools, name)
+    // Every exposed tool has a compiled validator by construction.
+    inputValidators.get(name)!(args ?? {})
 
     if (name === "jenkins_list_instances") {
       return {

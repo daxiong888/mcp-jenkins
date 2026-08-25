@@ -46,7 +46,7 @@ export const rawTools: Tool[] = [
           default: false,
         },
         maxDepth: {
-          type: "number",
+          type: "integer",
           description:
             "Maximum folder depth to traverse, from 0 through 100 (default: 10)",
           default: 10,
@@ -86,7 +86,7 @@ export const rawTools: Tool[] = [
           default: false,
         },
         maxDepth: {
-          type: "number",
+          type: "integer",
           description:
             "Maximum folder depth to traverse, from 0 through 100 (default: 10)",
           default: 10,
@@ -145,7 +145,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number to retrieve",
         },
       },
@@ -164,7 +165,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         limit: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Maximum number of builds to return (default: 5)",
           default: 5,
         },
@@ -185,7 +187,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number (optional, defaults to last build)",
         },
       },
@@ -224,7 +227,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number",
         },
       },
@@ -244,7 +248,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number",
         },
         relativePath: {
@@ -267,7 +272,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number to stop",
         },
       },
@@ -286,7 +292,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number to delete",
         },
       },
@@ -305,7 +312,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number",
         },
       },
@@ -324,7 +332,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number",
         },
       },
@@ -343,7 +352,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number",
         },
       },
@@ -363,7 +373,8 @@ export const rawTools: Tool[] = [
           description: "Name of the Jenkins job",
         },
         buildNumber: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Build number to replay",
         },
         mainScript: {
@@ -393,7 +404,8 @@ export const rawTools: Tool[] = [
       type: "object",
       properties: {
         queueId: {
-          type: "number",
+          type: "integer",
+          minimum: 1,
           description: "Queue item ID to cancel",
         },
       },

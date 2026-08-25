@@ -8,7 +8,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js"
 import {
   logger,
-  errorResponse,
   McpError,
   loadAllJenkinsInstances,
   loadToolFilter,
@@ -17,6 +16,7 @@ import {
   exposedToolNames,
   assertToolExposed,
   buildInputValidators,
+  invokeToolHandler,
   CliArgs,
 } from "./common/index.js"
 import { JenkinsClient } from "./lib/jenkins-client.js"
@@ -330,16 +330,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     const { instance, ...toolArgs } = (args || {}) as Record<string, any>
     const client = resolveJenkinsInstance(clients, instance)
-    const result = await handler(client, toolArgs)
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    }
+    return await invokeToolHandler(name, handler, client, toolArgs)
   } catch (error: any) {
     logger.error("Tool execution failed", {
       tool: name,

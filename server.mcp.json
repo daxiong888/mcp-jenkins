@@ -1,19 +1,27 @@
 {
   "name": "jenkins",
   "description": "Jenkins MCP server for managing jobs, builds, and artifacts",
-  "version": "0.1.0",
+  "version": "2.2.0",
   "tools": [
+    {
+      "name": "jenkins_list_instances",
+      "description": "List all configured Jenkins instances with their names and URLs"
+    },
     {
       "name": "jenkins_list_jobs",
       "description": "List Jenkins jobs and folders with full paths; pass recursive to traverse nested folders"
     },
     {
       "name": "jenkins_search_jobs",
-      "description": "Search nested Jenkins jobs by full name (case-insensitive substring match)"
+      "description": "Search for Jenkins jobs by name (case-insensitive substring match)"
     },
     {
       "name": "jenkins_get_job_status",
       "description": "Get the status of the last build for a specific job"
+    },
+    {
+      "name": "jenkins_get_job_parameters",
+      "description": "Get the parameter definitions for a parameterised Jenkins job — names, types, defaults, and choices"
     },
     {
       "name": "jenkins_get_build_status",
@@ -25,7 +33,7 @@
     },
     {
       "name": "jenkins_get_console_log",
-      "description": "Get console log output from a build"
+      "description": "Get console log output from a build. Returns both a snippet and full log."
     },
     {
       "name": "jenkins_trigger_build",
@@ -38,6 +46,114 @@
     {
       "name": "jenkins_get_artifact",
       "description": "Download a specific artifact from a build (returns base64-encoded content)"
+    },
+    {
+      "name": "jenkins_stop_build",
+      "description": "Stop/abort a running build"
+    },
+    {
+      "name": "jenkins_delete_build",
+      "description": "Delete a specific build"
+    },
+    {
+      "name": "jenkins_get_test_results",
+      "description": "Get test results for a build (pass/fail counts, test suites)"
+    },
+    {
+      "name": "jenkins_get_build_changes",
+      "description": "Get Git commits/changes for a build"
+    },
+    {
+      "name": "jenkins_get_pipeline_stages",
+      "description": "Get pipeline stages and their status for a build"
+    },
+    {
+      "name": "jenkins_replay_build",
+      "description": "Replay/rerun a pipeline build, optionally with a modified pipeline script"
+    },
+    {
+      "name": "jenkins_get_queue",
+      "description": "Get the current build queue showing pending builds"
+    },
+    {
+      "name": "jenkins_cancel_queue",
+      "description": "Cancel a queued build by queue ID"
+    },
+    {
+      "name": "jenkins_enable_job",
+      "description": "Enable a disabled job"
+    },
+    {
+      "name": "jenkins_disable_job",
+      "description": "Disable a job to prevent it from running"
+    },
+    {
+      "name": "jenkins_delete_job",
+      "description": "Permanently delete a job (WARNING: cannot be undone)"
+    },
+    {
+      "name": "jenkins_get_job_config",
+      "description": "Get job configuration XML"
+    },
+    {
+      "name": "jenkins_list_nodes",
+      "description": "List all Jenkins nodes/agents and their status"
+    },
+    {
+      "name": "jenkins_get_system_info",
+      "description": "Get Jenkins system information"
+    },
+    {
+      "name": "jenkins_get_version",
+      "description": "Get Jenkins version"
+    },
+    {
+      "name": "jenkins_get_plugins",
+      "description": "List all installed Jenkins plugins"
+    },
+    {
+      "name": "jenkins_create_job",
+      "description": "Create a new Jenkins job from an XML configuration"
+    },
+    {
+      "name": "jenkins_update_job_config",
+      "description": "Update an existing job's XML configuration"
+    },
+    {
+      "name": "jenkins_rename_job",
+      "description": "Rename a Jenkins job"
+    },
+    {
+      "name": "jenkins_copy_job",
+      "description": "Copy/duplicate a Jenkins job under a new name"
+    },
+    {
+      "name": "jenkins_get_node",
+      "description": "Get detailed information about a specific Jenkins node/agent"
+    },
+    {
+      "name": "jenkins_toggle_node_offline",
+      "description": "Toggle a Jenkins node/agent between online and offline"
+    },
+    {
+      "name": "jenkins_list_views",
+      "description": "List all Jenkins views with their jobs"
+    },
+    {
+      "name": "jenkins_get_view",
+      "description": "Get details and job list for a specific Jenkins view"
+    },
+    {
+      "name": "jenkins_quiet_down",
+      "description": "Put Jenkins into quiet mode — no new builds will start until cancelled (requires confirm: true)"
+    },
+    {
+      "name": "jenkins_cancel_quiet_down",
+      "description": "Cancel Jenkins quiet mode and resume accepting new builds"
+    },
+    {
+      "name": "jenkins_safe_restart",
+      "description": "Safely restart Jenkins — waits for running builds to finish before restarting (requires confirm: true)"
     }
   ]
 }

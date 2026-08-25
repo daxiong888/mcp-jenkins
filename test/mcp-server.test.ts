@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import * as common from "../src/common/index.js"
+import { rawTools } from "../src/tool-manifest.js"
 
 // Mock the common module before importing the server logic
 vi.mock("../src/common/index.js", () => ({
@@ -56,100 +57,37 @@ describe("MCP Server", () => {
   })
 
   describe("Tool Registration", () => {
-    it("should have all 38 Jenkins tools defined", () => {
-      // Verify expected tool names exist
-      const expectedTools = [
-        "jenkins_list_jobs",
-        "jenkins_search_jobs",
-        "jenkins_get_job_status",
-        "jenkins_get_job_parameters",
-        "jenkins_get_build_status",
-        "jenkins_get_recent_builds",
-        "jenkins_get_console_log",
-        "jenkins_trigger_build",
-        "jenkins_list_artifacts",
-        "jenkins_get_artifact",
-        "jenkins_stop_build",
-        "jenkins_delete_build",
-        "jenkins_get_test_results",
-        "jenkins_get_queue",
-        "jenkins_cancel_queue",
-        "jenkins_enable_job",
-        "jenkins_disable_job",
-        "jenkins_delete_job",
-        "jenkins_get_job_config",
-        "jenkins_list_nodes",
-        "jenkins_get_system_info",
-        "jenkins_get_version",
-        "jenkins_get_plugins",
-        "jenkins_get_build_changes",
-        "jenkins_get_pipeline_stages",
-        "jenkins_replay_build",
-        "jenkins_create_job",
-        "jenkins_update_job_config",
-        "jenkins_rename_job",
-        "jenkins_copy_job",
-        "jenkins_get_node",
-        "jenkins_toggle_node_offline",
-        "jenkins_list_views",
-        "jenkins_get_view",
-        "jenkins_quiet_down",
-        "jenkins_cancel_quiet_down",
-        "jenkins_safe_restart",
-        "jenkins_list_instances",
-      ]
+    it("should expose the production tool manifest", () => {
+      const names = rawTools.map((t) => t.name)
 
-      expect(expectedTools).toHaveLength(38)
-      expect(expectedTools).toContain("jenkins_get_job_status")
-      expect(expectedTools).toContain("jenkins_trigger_build")
-      expect(expectedTools).toContain("jenkins_list_jobs")
-      expect(expectedTools).toContain("jenkins_get_console_log")
+      expect(names).toHaveLength(38)
+      expect(names).toContain("jenkins_get_job_status")
+      expect(names).toContain("jenkins_trigger_build")
+      expect(names).toContain("jenkins_list_jobs")
+      expect(names).toContain("jenkins_get_console_log")
+      expect(names).toContain("jenkins_list_instances")
     })
 
     it("should have proper tool schemas", () => {
-      const getJobStatusSchema = {
-        name: "jenkins_get_job_status",
-        description: "Get the status of the last build for a specific job",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobName: {
-              type: "string",
-              description: "Name of the Jenkins job",
-            },
-          },
-          required: ["jobName"],
-        },
-      }
+      const getJobStatus = rawTools.find(
+        (t) => t.name === "jenkins_get_job_status",
+      )!
 
-      expect(getJobStatusSchema.inputSchema.required).toContain("jobName")
-      expect(getJobStatusSchema.inputSchema.properties.jobName.type).toBe(
-        "string",
-      )
+      expect(getJobStatus.inputSchema.required).toContain("jobName")
+      const properties = getJobStatus.inputSchema.properties as Record<
+        string,
+        { type: string }
+      >
+      expect(properties.jobName.type).toBe("string")
     })
 
     it("should have proper trigger_build schema with optional params", () => {
-      const triggerBuildSchema = {
-        name: "jenkins_trigger_build",
-        description: "Trigger a new build for a job",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobName: {
-              type: "string",
-              description: "Name of the Jenkins job",
-            },
-            params: {
-              type: "object",
-              description: "Optional build parameters",
-            },
-          },
-          required: ["jobName"],
-        },
-      }
+      const triggerBuild = rawTools.find(
+        (t) => t.name === "jenkins_trigger_build",
+      )!
 
-      expect(triggerBuildSchema.inputSchema.required).toContain("jobName")
-      expect(triggerBuildSchema.inputSchema.required).not.toContain("params")
+      expect(triggerBuild.inputSchema.required).toContain("jobName")
+      expect(triggerBuild.inputSchema.required).not.toContain("params")
     })
   })
 

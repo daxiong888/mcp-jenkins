@@ -111,6 +111,8 @@ interface CrumbInfo {
   crumb: string
 }
 
+const MAX_RECENT_BUILDS = 100
+
 export class JenkinsClient {
   readonly baseUrl: string
   private authHeader: string | undefined
@@ -232,14 +234,22 @@ export class JenkinsClient {
     }
   }
 
-  // Recent builds metadata for a job (last N, default 5)
+  // Recent builds metadata for a job (last N, default 5). The tree range asks
+  // Jenkins to return only the rows and fields we actually use; depth=1 would
+  // fetch the full build history and slice it client-side.
   async getRecentBuilds(
     jobName: string,
     limit = 5,
   ): Promise<NormalizedBuild[]> {
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RECENT_BUILDS) {
+      throw Errors.invalidInput(
+        `limit must be an integer between 1 and ${MAX_RECENT_BUILDS}`,
+      )
+    }
+    const tree = `builds[number,id,result,building,duration,timestamp,url]{0,${limit}}`
     try {
       const raw = await httpGetJson<any>(
-        `${this.baseUrl}/job/${jobPath(jobName)}/api/json?depth=1`,
+        `${this.baseUrl}/job/${jobPath(jobName)}/api/json?tree=${tree}`,
         { headers: this.headers() },
       )
       if (!raw.builds) return []

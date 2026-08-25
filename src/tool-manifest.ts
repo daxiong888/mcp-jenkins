@@ -167,7 +167,9 @@ export const rawTools: Tool[] = [
         limit: {
           type: "integer",
           minimum: 1,
-          description: "Maximum number of builds to return (default: 5)",
+          maximum: 100,
+          description:
+            "Maximum number of builds to return, from 1 through 100 (default: 5)",
           default: 5,
         },
       },

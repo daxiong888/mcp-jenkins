@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import {
   loadToolFilter,
   loadAllJenkinsInstances,
+  resolveJenkinsInstance,
 } from "../../src/common/env.js"
 
 describe("loadToolFilter", () => {
@@ -142,9 +143,15 @@ describe("loadAllJenkinsInstances — 2-tier priority", () => {
   it("throws when URL is set but no auth is provided", () => {
     process.env["MCP_JENKINS_URL"] = "https://jenkins.example.com"
 
-    expect(() => loadAllJenkinsInstances({})).toThrow(
-      "Missing Jenkins authentication",
-    )
+    let error: Error | undefined
+    try {
+      loadAllJenkinsInstances({})
+    } catch (caught) {
+      error = caught as Error
+    }
+
+    expect(error?.message).toContain("Missing Jenkins authentication")
+    expect(error?.message).not.toContain("https://jenkins.example.com")
   })
 
   it("accepts bearer token auth without user/api-token", () => {
@@ -202,6 +209,22 @@ describe("loadAllJenkinsInstances — 2-tier priority", () => {
     expect(() => loadAllJenkinsInstances({})).toThrow("counts must match")
   })
 
+  it.each([
+    ["MCP_JENKINS_USER", "admin"],
+    ["MCP_JENKINS_API_TOKEN", "token1"],
+    ["MCP_JENKINS_BEARER_TOKEN", "bearer1"],
+  ])("throws when %s count mismatches URL count", (key, value) => {
+    process.env["MCP_JENKINS_URL"] =
+      "https://pipeline.example.com,https://scheduler.example.com"
+    process.env["MCP_JENKINS_USER"] = "admin1,admin2"
+    process.env["MCP_JENKINS_API_TOKEN"] = "token1,token2"
+    process.env[key] = value
+
+    expect(() => loadAllJenkinsInstances({})).toThrow(
+      `${key} has 1 values but MCP_JENKINS_URL has 2 values`,
+    )
+  })
+
   it("anonymous single-instance accepts no user or token", () => {
     process.env["MCP_JENKINS_URL"] = "https://jenkins.example.com"
     process.env["MCP_JENKINS_ANONYMOUS"] = "true"
@@ -232,5 +255,28 @@ describe("loadAllJenkinsInstances — 2-tier priority", () => {
     const instances = loadAllJenkinsInstances({ jenkinsAnonymous: true })
     const env = instances.values().next().value
     expect(env.JENKINS_ANONYMOUS).toBe(true)
+  })
+})
+
+describe("resolveJenkinsInstance", () => {
+  const instances = new Map([
+    ["pipeline", { id: 1 }],
+    ["scheduler", { id: 2 }],
+  ])
+
+  it("requires an explicit selector when multiple instances exist", () => {
+    expect(() => resolveJenkinsInstance(instances)).toThrow(
+      "instance is required when multiple Jenkins instances are configured",
+    )
+  })
+
+  it("returns an explicitly selected instance", () => {
+    expect(resolveJenkinsInstance(instances, "scheduler")).toEqual({ id: 2 })
+  })
+
+  it("allows omission when exactly one instance exists", () => {
+    expect(
+      resolveJenkinsInstance(new Map([["pipeline", { id: 1 }]])),
+    ).toEqual({ id: 1 })
   })
 })

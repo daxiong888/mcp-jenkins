@@ -53,7 +53,7 @@ Then pass `instance` in tool calls:
 "List jobs on ci"
 ```
 
-The first instance is always the default — tools work without `instance` if you only have one server.
+When multiple instances are configured, every tool call must include `instance` — there is no default. Tools work without `instance` only when a single server is configured. The counts of `MCP_JENKINS_USER`, `MCP_JENKINS_API_TOKEN`, `MCP_JENKINS_BEARER_TOKEN`, and `MCP_JENKINS_ANONYMOUS` must each match the number of URLs (no value is reused across instances).
 
 > **Note:** Use `|` as the delimiter instead of `,` if any value might contain a comma (e.g., unusual URLs).
 

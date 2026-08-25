@@ -1,3 +1,5 @@
+import { McpError } from "./errors.js"
+
 export interface JenkinsEnv {
   JENKINS_URL: string
   JENKINS_USER?: string
@@ -33,6 +35,26 @@ const getConfigValue = (
 const splitValues = (value: string | undefined): string[] =>
   value ? value.split(/[,|]/).map((v) => v.trim()) : []
 
+const validateValueCount = (
+  key: string,
+  values: string[],
+  urlCount: number,
+): void => {
+  if (values.length !== 0 && values.length !== urlCount) {
+    throw new Error(
+      `${key} has ${values.length} values but MCP_JENKINS_URL has ${urlCount} values — counts must match`,
+    )
+  }
+}
+
+const deriveInstanceName = (url: string): string => {
+  try {
+    return new URL(url).hostname.split(".")[0]
+  } catch {
+    throw new Error("MCP_JENKINS_URL contains an invalid URL")
+  }
+}
+
 const buildInstanceEnv = (
   url: string,
   user: string | undefined,
@@ -45,7 +67,7 @@ const buildInstanceEnv = (
 
   if (!hasBasicAuth && !hasBearerAuth && !anonymous) {
     throw new Error(
-      `Missing Jenkins authentication for URL ${url}. Provide via:\n` +
+      "Missing Jenkins authentication. Provide via:\n" +
         "  Bearer Token:\n" +
         "    1. CLI: --bearer-token <token>\n" +
         "    2. Environment: MCP_JENKINS_BEARER_TOKEN=<token>\n" +
@@ -81,7 +103,7 @@ const buildInstanceEnv = (
  *   MCP_JENKINS_USER=admin,admin
  *   MCP_JENKINS_API_TOKEN=token1,token2
  *
- * The first instance is always the default (used when no instance param is provided).
+ * Calls may omit the instance selector only when exactly one instance exists.
  */
 export const loadAllJenkinsInstances = (
   cliArgs?: CliArgs,
@@ -121,7 +143,7 @@ export const loadAllJenkinsInstances = (
   const anonymousFlags = splitValues(rawAnonymous)
   const instanceNames = rawInstances
     ? splitValues(rawInstances)
-    : urls.map((url) => new URL(url).hostname.split(".")[0])
+    : urls.map(deriveInstanceName)
 
   if (urls.length !== instanceNames.length) {
     throw new Error(
@@ -129,17 +151,24 @@ export const loadAllJenkinsInstances = (
     )
   }
 
+  validateValueCount("MCP_JENKINS_USER", users, urls.length)
+  validateValueCount("MCP_JENKINS_API_TOKEN", apiTokens, urls.length)
+  validateValueCount("MCP_JENKINS_BEARER_TOKEN", bearerTokens, urls.length)
+  validateValueCount("MCP_JENKINS_ANONYMOUS", anonymousFlags, urls.length)
+
+  if (new Set(instanceNames).size !== instanceNames.length) {
+    throw new Error("Jenkins instance names must be unique")
+  }
+
   const instances = new Map<string, JenkinsEnv>()
 
   for (let i = 0; i < urls.length; i++) {
     const name = instanceNames[i]
     const url = urls[i]
-    const user = users[i] ?? users[0]
-    const apiToken = apiTokens[i] ?? apiTokens[0]
-    const bearerToken = bearerTokens[i] ?? bearerTokens[0]
-    const anonymous =
-      ((anonymousFlags[i] ?? anonymousFlags[0]) || "false").toLowerCase() ===
-      "true"
+    const user = users[i]
+    const apiToken = apiTokens[i]
+    const bearerToken = bearerTokens[i]
+    const anonymous = (anonymousFlags[i] || "false").toLowerCase() === "true"
     instances.set(
       name,
       buildInstanceEnv(url, user, apiToken, bearerToken, anonymous),
@@ -150,10 +179,41 @@ export const loadAllJenkinsInstances = (
   return instances
 }
 
-/** Returns the single (first) Jenkins instance — backwards-compatible helper. */
+export const resolveJenkinsInstance = <T>(
+  instances: Map<string, T>,
+  instance?: string,
+): T => {
+  const hasExplicitInstance =
+    typeof instance === "string" && instance.trim().length > 0
+
+  if (!hasExplicitInstance && instances.size > 1) {
+    throw new McpError(
+      "INSTANCE_REQUIRED",
+      `instance is required when multiple Jenkins instances are configured. Available: ${Array.from(instances.keys()).join(", ")}`,
+      400,
+    )
+  }
+
+  const name = hasExplicitInstance
+    ? instance
+    : (instances.keys().next().value as string | undefined)
+  const resolved = name ? instances.get(name) : undefined
+  if (!resolved) {
+    throw new McpError(
+      "INVALID_PARAMS",
+      name
+        ? `Unknown instance "${name}". Available: ${Array.from(instances.keys()).join(", ")}`
+        : "No Jenkins instance is configured",
+      400,
+    )
+  }
+  return resolved
+}
+
+/** Returns the configured instance only when selection is unambiguous. */
 export const loadJenkinsEnv = (cliArgs?: CliArgs): JenkinsEnv => {
   const instances = loadAllJenkinsInstances(cliArgs)
-  return instances.values().next().value as JenkinsEnv
+  return resolveJenkinsInstance(instances)
 }
 
 /** Returns instance names available at startup (for tool schema description). */

@@ -13,6 +13,7 @@ import {
   loadAllJenkinsInstances,
   loadToolFilter,
   getInstanceNames,
+  resolveJenkinsInstance,
   CliArgs,
 } from "./common/index.js"
 import { JenkinsClient } from "./lib/jenkins-client.js"
@@ -58,7 +59,7 @@ const instanceProperty = {
   instance: {
     type: "string",
     description:
-      "Jenkins instance name (optional — defaults to first configured instance)",
+      "Jenkins instance name (required when multiple instances are configured)",
   },
 }
 
@@ -251,7 +252,6 @@ const server = new Server(
 // Parse CLI args and build per-instance client map
 const cliArgs = parseCliArgs()
 const clients = new Map<string, JenkinsClient>()
-let defaultInstance: string
 
 try {
   const instances = loadAllJenkinsInstances(cliArgs)
@@ -278,22 +278,9 @@ try {
           : "basic",
     })
   }
-  defaultInstance = instances.keys().next().value as string
 } catch (error: any) {
   logger.error("Failed to initialize Jenkins clients", { error: error.message })
   process.exit(1)
-}
-
-const resolveClient = (instance?: string): JenkinsClient => {
-  const name = instance ?? defaultInstance
-  const c = clients.get(name)
-  if (!c)
-    throw new McpError(
-      "INVALID_PARAMS",
-      `Unknown instance "${name}". Available: ${Array.from(clients.keys()).join(", ")}`,
-      400,
-    )
-  return c
 }
 
 // Handle tool list requests
@@ -330,7 +317,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     const { instance, ...toolArgs } = (args || {}) as Record<string, any>
-    const client = resolveClient(instance)
+    const client = resolveJenkinsInstance(clients, instance)
     const result = await handler(client, toolArgs)
 
     return {

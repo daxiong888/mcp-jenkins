@@ -15,6 +15,18 @@ export const Errors = {
       "Authentication failed. Check credentials.",
       401,
     ),
+  permissionDenied: () =>
+    new McpError(
+      "PERMISSION_DENIED",
+      "Jenkins request was forbidden. Check permissions.",
+      403,
+    ),
+  httpFailed: (status: number) =>
+    new McpError(
+      "HTTP_ERROR",
+      `Jenkins request failed: HTTP ${status}`,
+      status,
+    ),
   jobNotFound: (job: string) =>
     new McpError("JOB_NOT_FOUND", `Job not found: ${job}`, 404),
   timeout: () => new McpError("TIMEOUT", "Jenkins request timed out.", 504),

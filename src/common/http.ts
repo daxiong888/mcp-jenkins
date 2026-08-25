@@ -43,6 +43,8 @@ export const httpPost = async (url: string, init: RequestInit & { timeoutMs?: nu
   try {
     const res = await fetch(url, { method: 'POST', ...init, signal: controller.signal });
     if (res.status === 401) throw Errors.authFailed();
+    if (res.status === 403) throw Errors.permissionDenied();
+    if (!res.ok) throw Errors.httpFailed(res.status);
     return { status: res.status, headers: Object.fromEntries(res.headers.entries()) };
   } catch (e: any) {
     if (e.name === 'AbortError') throw Errors.timeout();

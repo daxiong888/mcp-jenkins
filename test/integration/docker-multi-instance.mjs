@@ -240,6 +240,9 @@ const main = async () => {
         "jenkins_get_console_log",
         "jenkins_get_queue",
         "jenkins_cancel_queue",
+        "jenkins_list_nodes",
+        "jenkins_get_node",
+        "jenkins_toggle_node_offline",
         "jenkins_quiet_down",
         "jenkins_cancel_quiet_down",
       ].join(","),
@@ -488,6 +491,61 @@ const main = async () => {
         await callOk(client, "jenkins_cancel_quiet_down", {
           instance: "alpha",
         })
+      }
+
+      const nodes = await callOk(client, "jenkins_list_nodes", {
+        instance: "alpha",
+      })
+      const controllerNode = nodes.find(
+        ({ offline, numExecutors }) => !offline && numExecutors > 0,
+      )
+      assert(controllerNode?.name, "No online Jenkins controller node found")
+      const offlineMessage = "local integration test"
+      let restoreNode = false
+      try {
+        await callOk(client, "jenkins_toggle_node_offline", {
+          instance: "alpha",
+          nodeName: controllerNode.name,
+          offlineMessage,
+        })
+        restoreNode = true
+        await waitUntil(async () => {
+          const node = await callOk(client, "jenkins_get_node", {
+            instance: "alpha",
+            nodeName: controllerNode.name,
+          })
+          return (
+            node.temporarilyOffline === true &&
+            node.offlineCauseReason.includes(offlineMessage)
+          )
+        }, "Jenkins controller did not become temporarily offline")
+
+        await callOk(client, "jenkins_toggle_node_offline", {
+          instance: "alpha",
+          nodeName: controllerNode.name,
+        })
+        restoreNode = false
+        await waitUntil(async () => {
+          const node = await callOk(client, "jenkins_get_node", {
+            instance: "alpha",
+            nodeName: controllerNode.name,
+          })
+          return node.offline === false && node.temporarilyOffline === false
+        }, "Jenkins controller did not return online")
+      } finally {
+        if (restoreNode) {
+          await callOk(client, "jenkins_toggle_node_offline", {
+            instance: "alpha",
+            nodeName: controllerNode.name,
+          })
+          await waitUntil(async () => {
+            const node = await callOk(client, "jenkins_get_node", {
+              instance: "alpha",
+              nodeName: controllerNode.name,
+            })
+            return node.offline === false && node.temporarilyOffline === false
+          }, "Jenkins controller cleanup did not return online")
+        }
       }
 
       for (const jobName of [

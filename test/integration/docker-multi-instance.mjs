@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { createServer } from "node:net"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { spawn } from "node:child_process"
@@ -87,6 +88,22 @@ const waitForJenkins = async (url, credential) => {
   throw new Error("Timed out waiting for a local Jenkins test container")
 }
 
+const probeJenkins = async (url, credential) => {
+  try {
+    const response = await fetch(`${url}/api/json`, {
+      headers: { Authorization: basicAuth(credential) },
+      signal: AbortSignal.timeout(3_000),
+    })
+    return {
+      reachable: response.ok,
+      status: response.status,
+      session: response.headers.get("x-jenkins-session"),
+    }
+  } catch {
+    return { reachable: false, status: null, session: null }
+  }
+}
+
 const containerUrl = async (name) => {
   const result = await docker(["port", name, "8080/tcp"])
   const match = result.stdout.match(/127\.0\.0\.1:(\d+)/)
@@ -94,15 +111,36 @@ const containerUrl = async (name) => {
   return `http://127.0.0.1:${match[1]}`
 }
 
-const startContainer = async (name, credential, groovyPath) => {
+const getFreeLoopbackPort = () =>
+  new Promise((resolvePort, rejectPort) => {
+    const server = createServer()
+    server.unref()
+    server.on("error", rejectPort)
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address()
+      assert(address && typeof address === "object")
+      server.close((error) => {
+        if (error) rejectPort(error)
+        else resolvePort(address.port)
+      })
+    })
+  })
+
+const startContainer = async (
+  name,
+  credential,
+  groovyPath,
+  restartable = false,
+) => {
+  const hostPort = await getFreeLoopbackPort()
   await docker([
     "run",
     "--detach",
-    "--rm",
+    ...(restartable ? ["--restart", "on-failure:3"] : ["--rm"]),
     "--name",
     name,
     "--publish",
-    "127.0.0.1::8080",
+    `127.0.0.1:${hostPort}:8080`,
     "--env",
     `JENKINS_ADMIN_ID=${credential.user}`,
     "--env",
@@ -113,7 +151,7 @@ const startContainer = async (name, credential, groovyPath) => {
     `${groovyPath}:/usr/share/jenkins/ref/init.groovy.d/security.groovy:ro`,
     JENKINS_IMAGE,
   ])
-  return containerUrl(name)
+  return `http://127.0.0.1:${hostPort}`
 }
 
 const toolText = (result) => {
@@ -127,7 +165,7 @@ const callOk = async (client, name, args) => {
   if (result.isError === true) {
     const error = toolText(result)
     assert.fail(
-      `${name} unexpectedly failed: ${error.code ?? "UNKNOWN"}: ${error.message ?? "no message"}`,
+      `${name} unexpectedly failed: ${error.code ?? "UNKNOWN"}: ${error.error ?? error.message ?? "no message"}`,
     )
   }
   return toolText(result)
@@ -207,7 +245,7 @@ const main = async () => {
   try {
     urls = await Promise.all(
       containers.map((name, index) =>
-        startContainer(name, credentials[index], groovyPath),
+        startContainer(name, credentials[index], groovyPath, index === 0),
       ),
     )
     await Promise.all(
@@ -245,6 +283,7 @@ const main = async () => {
         "jenkins_toggle_node_offline",
         "jenkins_quiet_down",
         "jenkins_cancel_quiet_down",
+        "jenkins_safe_restart",
       ].join(","),
     }
 
@@ -562,6 +601,84 @@ const main = async () => {
       await callOk(client, "jenkins_delete_job", {
         instance: "beta",
         jobName: "shared-job",
+      })
+
+      const beforeRestart = await probeJenkins(urls[0], credentials[0])
+      assert(beforeRestart.reachable, "Jenkins was not healthy before restart")
+      await callOk(client, "jenkins_safe_restart", {
+        instance: "alpha",
+        confirm: true,
+      })
+
+      let observedInterruption = false
+      let lastRestartStatus = beforeRestart.status
+      let afterRestart
+      try {
+        afterRestart = await waitUntil(
+          async () => {
+            const probe = await probeJenkins(urls[0], credentials[0])
+            lastRestartStatus = probe.status
+            if (!probe.reachable) {
+              observedInterruption = true
+              return false
+            }
+            if (
+              observedInterruption ||
+              (beforeRestart.session !== null &&
+                probe.session !== null &&
+                probe.session !== beforeRestart.session)
+            ) {
+              return probe
+            }
+            return false
+          },
+          "Jenkins restart was not observed",
+          120_000,
+        )
+      } catch {
+        const containerState = (
+          await docker([
+            "inspect",
+            "--format",
+            "{{.State.Status}} {{.RestartCount}}",
+            containers[0],
+          ])
+        ).stdout.trim()
+        const portStable = (await containerUrl(containers[0])) === urls[0]
+        const internalPort =
+          (
+            await docker([
+              "exec",
+              containers[0],
+              "bash",
+              "-c",
+              "exec 3<>/dev/tcp/127.0.0.1/8080",
+            ], { allowFailure: true })
+          ).code === 0
+        const startupMarkers = (
+          await docker(["logs", containers[0]], { allowFailure: true })
+        ).stdout.split("Jenkins is fully up and running").length - 1
+        throw new Error(
+          `Jenkins restart was not observed; last status ${lastRestartStatus ?? "unreachable"}; container ${containerState}; port stable ${portStable}; internal port ${internalPort}; startup markers ${startupMarkers}`,
+        )
+      }
+      assert(
+        observedInterruption || afterRestart.session !== beforeRestart.session,
+        "Jenkins did not expose a restart boundary",
+      )
+      await waitForJenkins(urls[0], credentials[0])
+
+      const restartedVersion = await callOk(client, "jenkins_get_version", {
+        instance: "alpha",
+      })
+      assert.equal(restartedVersion.version, alphaVersion.version)
+      await callOk(client, "jenkins_quiet_down", {
+        instance: "alpha",
+        confirm: true,
+        reason: "post-restart integration test",
+      })
+      await callOk(client, "jenkins_cancel_quiet_down", {
+        instance: "alpha",
       })
 
       return [alphaVersion.version, betaVersion.version]

@@ -1099,6 +1099,99 @@ describe("JenkinsClient", () => {
         expect.anything(),
       )
     })
+
+    it("should refresh stale crumb state once after a forbidden write", async () => {
+      vi.mocked(fetch)
+        .mockReturnValueOnce(
+          mockFetchResponse(
+            { crumbRequestField: "Jenkins-Crumb", crumb: "stale-crumb" },
+            "JSESSIONID=stale-session; Path=/",
+          ),
+        )
+        .mockReturnValueOnce(
+          mockFetchResponse(
+            { crumbRequestField: "Jenkins-Crumb", crumb: "fresh-crumb" },
+            "JSESSIONID=fresh-session; Path=/",
+          ),
+        )
+      vi.mocked(common.httpPost)
+        .mockRejectedValueOnce(
+          new common.McpError(
+            "PERMISSION_DENIED",
+            "Jenkins request was forbidden",
+            403,
+          ),
+        )
+        .mockResolvedValueOnce({ status: 200, headers: {} })
+
+      await expect(client.quietDown()).resolves.toEqual({ quietingDown: true })
+
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(common.httpPost).toHaveBeenCalledTimes(2)
+      expect(common.httpPost).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Jenkins-Crumb": "stale-crumb",
+            Cookie: "JSESSIONID=stale-session",
+          }),
+        }),
+      )
+      expect(common.httpPost).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Jenkins-Crumb": "fresh-crumb",
+            Cookie: "JSESSIONID=fresh-session",
+          }),
+        }),
+      )
+    })
+
+    it("should surface a second forbidden response without another retry", async () => {
+      vi.mocked(fetch)
+        .mockReturnValueOnce(
+          mockFetchResponse({
+            crumbRequestField: "Jenkins-Crumb",
+            crumb: "crumb-a",
+          }),
+        )
+        .mockReturnValueOnce(
+          mockFetchResponse({
+            crumbRequestField: "Jenkins-Crumb",
+            crumb: "crumb-b",
+          }),
+        )
+      vi.mocked(common.httpPost).mockRejectedValue(
+        new common.McpError(
+          "PERMISSION_DENIED",
+          "Jenkins request was forbidden",
+          403,
+        ),
+      )
+
+      await expect(client.quietDown()).rejects.toMatchObject({ status: 403 })
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(common.httpPost).toHaveBeenCalledTimes(2)
+    })
+
+    it("should not refresh the crumb after an authentication failure", async () => {
+      vi.mocked(fetch).mockReturnValue(
+        mockFetchResponse({
+          crumbRequestField: "Jenkins-Crumb",
+          crumb: "auth-crumb",
+        }),
+      )
+      vi.mocked(common.httpPost).mockRejectedValue(
+        new common.McpError("AUTH_FAILED", "Authentication failed", 401),
+      )
+
+      await expect(client.quietDown()).rejects.toMatchObject({ status: 401 })
+      expect(fetch).toHaveBeenCalledTimes(1)
+      expect(common.httpPost).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe("cancelQuietDown", () => {
@@ -1133,31 +1226,60 @@ describe("JenkinsClient", () => {
     })
 
     it("should accept Jenkins' expected redirect response", async () => {
-      const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb8" }
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
-      vi.mocked(common.httpPost).mockRejectedValue(
-        new common.McpError(
-          "HTTP_ERROR",
-          "Jenkins request failed: HTTP 302",
-          302,
-        ),
-      )
+      vi.mocked(fetch)
+        .mockReturnValueOnce(
+          mockFetchResponse(
+            { crumbRequestField: "Jenkins-Crumb", crumb: "restart-crumb" },
+            "JSESSIONID=restart-session; Path=/",
+          ),
+        )
+        .mockReturnValueOnce(
+          mockFetchResponse(
+            { crumbRequestField: "Jenkins-Crumb", crumb: "renewed-crumb" },
+            "JSESSIONID=renewed-session; Path=/",
+          ),
+        )
+      vi.mocked(common.httpPost)
+        .mockRejectedValueOnce(
+          new common.McpError(
+            "HTTP_ERROR",
+            "Jenkins request failed: HTTP 302",
+            302,
+          ),
+        )
+        .mockResolvedValueOnce({ status: 200, headers: {} })
 
       await expect(client.safeRestart()).resolves.toEqual({ restarting: true })
+      await expect(client.quietDown()).resolves.toEqual({ quietingDown: true })
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(common.httpPost).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Jenkins-Crumb": "renewed-crumb",
+            Cookie: "JSESSIONID=renewed-session",
+          }),
+        }),
+      )
     })
 
     it("should continue to reject other non-success responses", async () => {
       const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb8" }
       vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
-      vi.mocked(common.httpPost).mockRejectedValue(
-        new common.McpError(
-          "HTTP_ERROR",
-          "Jenkins request failed: HTTP 503",
-          503,
-        ),
-      )
+      vi.mocked(common.httpPost)
+        .mockRejectedValueOnce(
+          new common.McpError(
+            "HTTP_ERROR",
+            "Jenkins request failed: HTTP 503",
+            503,
+          ),
+        )
+        .mockResolvedValueOnce({ status: 200, headers: {} })
 
       await expect(client.safeRestart()).rejects.toMatchObject({ status: 503 })
+      await expect(client.quietDown()).resolves.toEqual({ quietingDown: true })
+      expect(fetch).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -509,6 +509,37 @@ export class JenkinsClient {
     }
   }
 
+  private async postWithCrumb(
+    url: string,
+    init: Omit<RequestInit, "headers"> & {
+      headers?: Record<string, string>
+      timeoutMs?: number
+    } = {},
+  ): Promise<{
+    status: number
+    headers: Record<string, string | null>
+  }> {
+    const send = async () => {
+      const crumb = await this.ensureCrumb()
+      const headers = this.headers(init.headers)
+      if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
+      return httpPost(url, { ...init, headers })
+    }
+
+    try {
+      return await send()
+    } catch (error) {
+      if (!(error instanceof McpError && error.status === 403)) throw error
+      // Jenkins crumbs and their session cookies can become stale after a
+      // controller restart. A forbidden request was not applied, so refresh
+      // both values and retry exactly once; a real permission failure remains
+      // a 403 from the second attempt.
+      this.crumb = undefined
+      this.cookies = undefined
+      return send()
+    }
+  }
+
   async triggerBuild(
     jobName: string,
     params?: Record<string, any>,
@@ -517,13 +548,11 @@ export class JenkinsClient {
     queueUrl: string | null
     queueId: number | null
   }> {
-    const crumb = await this.ensureCrumb()
     const isParameterized = params && Object.keys(params).length > 0
     const path = isParameterized ? "buildWithParameters" : "build"
     const url = `${this.baseUrl}/job/${jobPath(jobName)}/${path}`
     let body: string | undefined
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
+    const headers: Record<string, string> = {}
     if (isParameterized) {
       const usp = new URLSearchParams()
       for (const [k, v] of Object.entries(params!)) usp.append(k, String(v))
@@ -531,7 +560,7 @@ export class JenkinsClient {
       headers["Content-Type"] = "application/x-www-form-urlencoded"
     }
     try {
-      const res = await httpPost(url, { headers, body })
+      const res = await this.postWithCrumb(url, { headers, body })
       const queueUrl = res.headers["location"] || null
       return {
         jobName,
@@ -610,14 +639,9 @@ export class JenkinsClient {
     jobName: string,
     buildNumber: number,
   ): Promise<{ jobName: string; buildNumber: number; stopped: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(
+      await this.postWithCrumb(
         `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/stop`,
-        { headers },
       )
       return { jobName, buildNumber, stopped: true }
     } catch (e: any) {
@@ -631,14 +655,9 @@ export class JenkinsClient {
     jobName: string,
     buildNumber: number,
   ): Promise<{ jobName: string; buildNumber: number; deleted: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(
+      await this.postWithCrumb(
         `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/doDelete`,
-        { headers },
       )
       return { jobName, buildNumber, deleted: true }
     } catch (e: any) {
@@ -710,14 +729,10 @@ export class JenkinsClient {
   async cancelQueue(
     queueId: number,
   ): Promise<{ queueId: number; cancelled: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(`${this.baseUrl}/queue/cancelItem?id=${queueId}`, {
-        headers,
-      })
+      await this.postWithCrumb(
+        `${this.baseUrl}/queue/cancelItem?id=${queueId}`,
+      )
       return { queueId, cancelled: true }
     } catch (e: any) {
       throw e
@@ -728,14 +743,10 @@ export class JenkinsClient {
   async enableJob(
     jobName: string,
   ): Promise<{ jobName: string; enabled: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(`${this.baseUrl}/job/${jobPath(jobName)}/enable`, {
-        headers,
-      })
+      await this.postWithCrumb(
+        `${this.baseUrl}/job/${jobPath(jobName)}/enable`,
+      )
       return { jobName, enabled: true }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
@@ -747,14 +758,10 @@ export class JenkinsClient {
   async disableJob(
     jobName: string,
   ): Promise<{ jobName: string; disabled: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(`${this.baseUrl}/job/${jobPath(jobName)}/disable`, {
-        headers,
-      })
+      await this.postWithCrumb(
+        `${this.baseUrl}/job/${jobPath(jobName)}/disable`,
+      )
       return { jobName, disabled: true }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
@@ -769,12 +776,8 @@ export class JenkinsClient {
     // Build (and thereby validate) the URL before the crumb probe, so an
     // illegal job name is rejected without sending any request.
     const url = `${this.baseUrl}/job/${jobPath(jobName)}/doDelete`
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
     try {
-      await httpPost(url, { headers })
+      await this.postWithCrumb(url)
       return { jobName, deleted: true }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
@@ -985,13 +988,8 @@ export class JenkinsClient {
     jobName: string,
     configXml: string,
   ): Promise<{ jobName: string; created: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers({
-      "Content-Type": "application/xml",
-    })
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-    const res = await httpPost(createItemUrl(this.baseUrl, jobName), {
-      headers,
+    const res = await this.postWithCrumb(createItemUrl(this.baseUrl, jobName), {
+      headers: { "Content-Type": "application/xml" },
       body: configXml,
     })
     if (res.status >= 400)
@@ -1003,16 +1001,14 @@ export class JenkinsClient {
     jobName: string,
     configXml: string,
   ): Promise<{ jobName: string; updated: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers({
-      "Content-Type": "application/xml",
-    })
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
-      await httpPost(`${this.baseUrl}/job/${jobPath(jobName)}/config.xml`, {
-        headers,
-        body: configXml,
-      })
+      await this.postWithCrumb(
+        `${this.baseUrl}/job/${jobPath(jobName)}/config.xml`,
+        {
+          headers: { "Content-Type": "application/xml" },
+          body: configXml,
+        },
+      )
       return { jobName, updated: true }
     } catch (e: any) {
       if (e.message?.includes("HTTP 404")) throw Errors.jobNotFound(jobName)
@@ -1024,13 +1020,9 @@ export class JenkinsClient {
     jobName: string,
     newName: string,
   ): Promise<{ oldName: string; newName: string; renamed: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
-      await httpPost(
+      await this.postWithCrumb(
         `${this.baseUrl}/job/${jobPath(jobName)}/confirmRename?newName=${encodeURIComponent(newName)}`,
-        { headers },
       )
       return { oldName: jobName, newName, renamed: true }
     } catch (e: any) {
@@ -1043,9 +1035,6 @@ export class JenkinsClient {
     fromName: string,
     newName: string,
   ): Promise<{ fromName: string; newName: string; copied: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
       const sourceFullName = normalizeJobFullName(fromName)
       // The leading slash on `from` is load-bearing, not stray. Jenkins resolves
@@ -1056,9 +1045,8 @@ export class JenkinsClient {
       // against nested folders; not yet confirmed across Jenkins versions, and
       // the Folders plugin has moved around in this area, so treat a copy that
       // fails only on one instance as a candidate for version sensitivity here.
-      const res = await httpPost(
+      const res = await this.postWithCrumb(
         `${createItemUrl(this.baseUrl, newName)}&from=${encodeURIComponent(`/${sourceFullName}`)}&mode=copy`,
-        { headers },
       )
       if (res.status >= 400)
         throw Errors.unexpected(`Copy job failed: HTTP ${res.status}`)
@@ -1096,13 +1084,9 @@ export class JenkinsClient {
     nodeName: string,
     offlineMessage = "",
   ): Promise<{ nodeName: string; toggledOffline: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
-      await httpPost(
+      await this.postWithCrumb(
         `${this.baseUrl}/computer/${nodePath(nodeName)}/toggleOffline?offlineMessage=${encodeURIComponent(offlineMessage)}`,
-        { headers },
       )
       return { nodeName, toggledOffline: true }
     } catch (e: any) {
@@ -1151,39 +1135,31 @@ export class JenkinsClient {
   }
 
   async quietDown(reason = ""): Promise<{ quietingDown: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     const url = reason
       ? `${this.baseUrl}/quietDown?reason=${encodeURIComponent(reason)}`
       : `${this.baseUrl}/quietDown`
-    await httpPost(url, { headers })
+    await this.postWithCrumb(url)
     return { quietingDown: true }
   }
 
   async cancelQuietDown(): Promise<{ quietingDown: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-    await httpPost(`${this.baseUrl}/cancelQuietDown`, { headers })
+    await this.postWithCrumb(`${this.baseUrl}/cancelQuietDown`)
     return { quietingDown: false }
   }
 
   async safeRestart(): Promise<{ restarting: boolean }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
       // Jenkins schedules the restart and redirects to the controller root.
       // Following that redirect races the shutdown window and can turn a
       // successful restart request into a misleading HTTP 503.
-      await httpPost(`${this.baseUrl}/safeRestart`, {
-        headers,
+      await this.postWithCrumb(`${this.baseUrl}/safeRestart`, {
         redirect: "manual",
       })
     } catch (error) {
       if (!(error instanceof McpError && error.status === 302)) throw error
     }
+    this.crumb = undefined
+    this.cookies = undefined
     return { restarting: true }
   }
 
@@ -1198,16 +1174,16 @@ export class JenkinsClient {
     queueUrl: string | null
     queueId: number | null
   }> {
-    const crumb = await this.ensureCrumb()
-    const headers: Record<string, string> = this.headers()
-    if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-
-    const init: RequestInit & { timeoutMs?: number } = { headers }
+    const headers: Record<string, string> = {}
+    const init: Omit<RequestInit, "headers"> & {
+      headers: Record<string, string>
+      timeoutMs?: number
+    } = { headers }
     if (mainScript !== undefined) {
       headers["Content-Type"] = "application/x-www-form-urlencoded"
       init.body = new URLSearchParams({ mainScript }).toString()
     }
-    const res = await httpPost(
+    const res = await this.postWithCrumb(
       `${this.baseUrl}/job/${jobPath(jobName)}/${buildNumber}/replay/rebuild`,
       init,
     )

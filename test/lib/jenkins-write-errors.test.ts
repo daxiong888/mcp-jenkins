@@ -12,14 +12,14 @@ describe("JenkinsClient write failures", () => {
     vi.unstubAllGlobals()
   })
 
-  it("propagates a forbidden trigger-build response instead of reporting success", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockResolvedValueOnce(response(404))
-        .mockResolvedValueOnce(response(403)),
-    )
+  it("propagates a forbidden trigger-build response after one crumb refresh", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(response(404))
+      .mockResolvedValueOnce(response(403))
+      .mockResolvedValueOnce(response(404))
+      .mockResolvedValueOnce(response(403))
+    vi.stubGlobal("fetch", fetchMock)
     const client = new JenkinsClient({
       baseUrl: "https://jenkins.invalid",
       authHeader: "Bearer secret-token",
@@ -29,5 +29,6 @@ describe("JenkinsClient write failures", () => {
       code: "PERMISSION_DENIED",
       status: 403,
     })
+    expect(fetchMock).toHaveBeenCalledTimes(4)
   })
 })

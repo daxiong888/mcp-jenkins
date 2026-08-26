@@ -37,7 +37,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/daxiong888/mcp-jenkins.git"
+    "url": "git+https://github.com/daxiong888/mcp-jenkins.git"
   },
   "homepage": "https://github.com/daxiong888/mcp-jenkins#readme",
   "bugs": {

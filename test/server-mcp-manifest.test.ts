@@ -26,7 +26,7 @@ describe("server.mcp.json consistency", () => {
     expect(pkg).toMatchObject({
       name: "@daxiong888/mcp-jenkins",
       repository: {
-        url: "https://github.com/daxiong888/mcp-jenkins.git",
+        url: "git+https://github.com/daxiong888/mcp-jenkins.git",
       },
       homepage: "https://github.com/daxiong888/mcp-jenkins#readme",
       bugs: {

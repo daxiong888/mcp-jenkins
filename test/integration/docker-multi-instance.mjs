@@ -60,6 +60,16 @@ const basicAuth = ({ user, password }) =>
 const sleep = (milliseconds) =>
   new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds))
 
+const waitUntil = async (check, message, timeoutMs = 30_000) => {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const result = await check()
+    if (result) return result
+    await sleep(250)
+  }
+  throw new Error(message)
+}
+
 const waitForJenkins = async (url, credential) => {
   const deadline = Date.now() + 240_000
   while (Date.now() < deadline) {
@@ -226,6 +236,8 @@ const main = async () => {
         "jenkins_trigger_build",
         "jenkins_get_build_status",
         "jenkins_get_console_log",
+        "jenkins_get_queue",
+        "jenkins_cancel_queue",
         "jenkins_quiet_down",
         "jenkins_cancel_quiet_down",
       ].join(","),
@@ -369,9 +381,53 @@ const main = async () => {
         confirm: true,
         reason: "local integration test",
       })
-      await callOk(client, "jenkins_cancel_quiet_down", {
-        instance: "alpha",
-      })
+      let cancelQueueId
+      try {
+        const queuedForCancellation = await callOk(
+          client,
+          "jenkins_trigger_build",
+          {
+            instance: "alpha",
+            jobName: "build-job",
+          },
+        )
+        cancelQueueId = queuedForCancellation.queueId
+        assert(Number.isInteger(cancelQueueId) && cancelQueueId > 0)
+
+        await waitUntil(async () => {
+          const queue = await callOk(client, "jenkins_get_queue", {
+            instance: "alpha",
+          })
+          return queue.some(({ id }) => id === cancelQueueId)
+        }, "Queued build did not appear in the Jenkins queue")
+
+        await callOk(client, "jenkins_cancel_queue", {
+          instance: "alpha",
+          queueId: cancelQueueId,
+        })
+        await waitUntil(async () => {
+          const queue = await callOk(client, "jenkins_get_queue", {
+            instance: "alpha",
+          })
+          return !queue.some(({ id }) => id === cancelQueueId)
+        }, "Cancelled build remained in the Jenkins queue")
+        cancelQueueId = undefined
+      } finally {
+        if (cancelQueueId !== undefined) {
+          const queue = await callOk(client, "jenkins_get_queue", {
+            instance: "alpha",
+          })
+          if (queue.some(({ id }) => id === cancelQueueId)) {
+            await callOk(client, "jenkins_cancel_queue", {
+              instance: "alpha",
+              queueId: cancelQueueId,
+            })
+          }
+        }
+        await callOk(client, "jenkins_cancel_quiet_down", {
+          instance: "alpha",
+        })
+      }
 
       for (const jobName of ["renamed-job", "build-job", "shared-job"]) {
         await callOk(client, "jenkins_delete_job", {

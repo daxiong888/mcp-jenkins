@@ -445,6 +445,7 @@ describe("JenkinsClient", () => {
       vi.mocked(common.httpGetJson).mockResolvedValue({
         number: 10,
         building: false,
+        result: "SUCCESS",
       })
 
       const result = await client.getConsoleLog("my-job", 10, 50, undefined, 64)
@@ -457,9 +458,10 @@ describe("JenkinsClient", () => {
       expect(result.truncated).toBe(true)
       expect(result.nextCursor).toEqual(expect.any(String))
       expect(common.httpGetTextChunk).toHaveBeenCalledWith(
-        "https://jenkins.example.com/job/my-job/10/logText/progressiveText?start=0",
+        "https://jenkins.example.com/job/my-job/10/consoleText",
         64,
         expect.anything(),
+        0,
       )
 
       vi.mocked(common.httpGetTextChunk).mockResolvedValueOnce({
@@ -476,9 +478,10 @@ describe("JenkinsClient", () => {
         64,
       )
       expect(common.httpGetTextChunk).toHaveBeenLastCalledWith(
-        `https://jenkins.example.com/job/my-job/10/logText/progressiveText?start=${Buffer.byteLength(logChunk)}`,
+        "https://jenkins.example.com/job/my-job/10/consoleText",
         64,
         expect.anything(),
+        Buffer.byteLength(logChunk),
       )
       expect(resumed.hasMore).toBe(false)
       expect(resumed.nextCursor).toBeNull()

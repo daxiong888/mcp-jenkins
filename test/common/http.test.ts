@@ -153,6 +153,30 @@ describe("httpGetTextChunk", () => {
     expect(result.byteLength).toBe(3)
     expect(result.truncated).toBe(true)
   })
+
+  it("streams past prior response bytes before collecting the next window", async () => {
+    const body = "first🙂second"
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body)))
+
+    const result = await httpGetTextChunk(
+      "https://jenkins.invalid/consoleText",
+      6,
+      {},
+      Buffer.byteLength("first🙂"),
+    )
+
+    expect(result.text).toBe("second")
+    expect(result.byteLength).toBe(6)
+    expect(result.truncated).toBe(false)
+  })
+
+  it("rejects a cursor past the current response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("short")))
+
+    await expect(
+      httpGetTextChunk("https://jenkins.invalid/consoleText", 4, {}, 6),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT", status: 400 })
+  })
 })
 
 const readResponse = (status: number, body = "sensitive response body") =>

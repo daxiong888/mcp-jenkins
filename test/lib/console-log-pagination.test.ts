@@ -6,42 +6,35 @@ describe("console log pagination", () => {
     vi.unstubAllGlobals()
   })
 
-  it("re-reads look-ahead bytes from the returned cursor", async () => {
-    const completeLog = new TextEncoder().encode("123456789")
+  it("reassembles the exact consoleText bytes across UTF-8 boundaries", async () => {
+    const completeLog = "first\r\n第二行\nthird🙂line\r\n"
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = new URL(String(input))
-      const start = Number(url.searchParams.get("start") ?? 0)
-      return new Response(completeLog.slice(start), {
-        status: 200,
-        headers: {
-          "x-text-size": String(completeLog.byteLength),
-          "x-more-data": "false",
-        },
-      })
+      if (String(input).endsWith("/api/json")) {
+        return Response.json({ number: 1, building: false, result: "SUCCESS" })
+      }
+      return new Response(completeLog)
     })
     vi.stubGlobal("fetch", fetchMock)
     const client = new JenkinsClient({
       baseUrl: "https://jenkins.example.com",
     })
 
-    const first = await client.getConsoleLog("job", 1, 20, undefined, 5)
-    expect(first.logChunk).toBe("12345")
-    expect(first.hasMore).toBe(true)
-    expect(first.nextCursor).toEqual(expect.any(String))
+    const chunks: string[] = []
+    let cursor: string | undefined
+    do {
+      const page = await client.getConsoleLog("job", 1, 20, cursor, 5)
+      chunks.push(page.logChunk)
+      cursor = page.nextCursor ?? undefined
+    } while (cursor)
 
-    const second = await client.getConsoleLog(
-      "job",
-      1,
-      20,
-      first.nextCursor ?? undefined,
-      5,
-    )
-    expect(second.logChunk).toBe("6789")
-    expect(second.hasMore).toBe(false)
-    expect(second.nextCursor).toBeNull()
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "https://jenkins.example.com/job/job/1/logText/progressiveText?start=5",
+    expect(chunks.join("")).toBe(completeLog)
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith("/consoleText"),
+      ),
+    ).toHaveLength(chunks.length)
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://jenkins.example.com/job/job/1/api/json",
       expect.anything(),
     )
   })

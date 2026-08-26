@@ -57,6 +57,7 @@ export const httpGetTextChunk = async (
   url: string,
   maxBytes: number,
   init: RequestInit & { timeoutMs?: number } = {},
+  startByte = 0,
 ): Promise<HttpTextChunk> => {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), init.timeoutMs ?? 10000);
@@ -77,6 +78,7 @@ export const httpGetTextChunk = async (
 
     const chunks: Buffer[] = [];
     const readLimit = maxBytes + 4;
+    let skipped = 0;
     let collected = 0;
     let done = false;
     let truncated = false;
@@ -86,18 +88,37 @@ export const httpGetTextChunk = async (
       done = next.done;
       if (done || !next.value) break;
 
+      let chunkOffset = 0;
+      if (skipped < startByte) {
+        const skipLength = Math.min(
+          next.value.byteLength,
+          startByte - skipped,
+        );
+        skipped += skipLength;
+        chunkOffset = skipLength;
+      }
+      if (chunkOffset === next.value.byteLength) continue;
+
       const remaining = readLimit - collected;
-      const take = Math.min(next.value.byteLength, remaining);
+      const available = next.value.byteLength - chunkOffset;
+      const take = Math.min(available, remaining);
       chunks.push(
-        Buffer.from(next.value.buffer, next.value.byteOffset, take),
+        Buffer.from(
+          next.value.buffer,
+          next.value.byteOffset + chunkOffset,
+          take,
+        ),
       );
       collected += take;
-      if (take < next.value.byteLength || collected >= readLimit) {
+      if (take < available || collected >= readLimit) {
         truncated = true;
         break;
       }
     }
 
+    if (skipped < startByte) {
+      throw Errors.invalidInput("Console log cursor is past current output");
+    }
     if (truncated) await reader.cancel();
 
     const raw = Buffer.concat(chunks, collected);

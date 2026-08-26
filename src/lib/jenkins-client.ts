@@ -421,20 +421,18 @@ export class JenkinsClient {
     const offset = decodedCursor?.offset ?? 0
     try {
       const chunk = await httpGetTextChunk(
-        `${this.baseUrl}/job/${jobPath(jobName)}/${bn}/logText/progressiveText?start=${offset}`,
+        `${this.baseUrl}/job/${jobPath(jobName)}/${bn}/consoleText`,
         maxBytes,
         { headers: this.headers() },
+        offset,
       )
       const snippet = chunk.text
         .trim()
         .slice(0, maxSnippetLength)
         .replace(/\r/g, "")
-      const serverOffset = Number(chunk.headers["x-text-size"])
       const nextOffset = offset + chunk.byteLength
       const hasMore =
-        chunk.truncated ||
-        chunk.headers["x-more-data"]?.toLowerCase() === "true" ||
-        (Number.isFinite(serverOffset) && serverOffset > nextOffset)
+        chunk.truncated || (await this.getBuild(jobName, bn)).result === "RUNNING"
       const nextCursor = hasMore
         ? encodeConsoleLogCursor({
             jobName,

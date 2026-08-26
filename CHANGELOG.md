@@ -21,6 +21,7 @@ Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
 - Write operations propagate Jenkins failures, validate job paths, and expose queue IDs for triggered and replayed builds.
 - Tool filtering is enforced for both discovery and calls, input schemas are validated at runtime, and logs redact URLs, credentials, authorization headers, and response bodies.
 - Recursive job traversal, recent build queries, artifact downloads, and console logs are bounded.
+- Console log cursors now follow the exact plain-text output bytes, preventing dropped or corrupted text across UTF-8 and Jenkins line-ending boundaries.
 
 ---
 

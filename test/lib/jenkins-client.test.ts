@@ -1128,8 +1128,36 @@ describe("JenkinsClient", () => {
       expect(result).toEqual({ restarting: true })
       expect(common.httpPost).toHaveBeenCalledWith(
         "https://jenkins.example.com/safeRestart",
-        expect.anything(),
+        expect.objectContaining({ redirect: "manual" }),
       )
+    })
+
+    it("should accept Jenkins' expected redirect response", async () => {
+      const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb8" }
+      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
+      vi.mocked(common.httpPost).mockRejectedValue(
+        new common.McpError(
+          "HTTP_ERROR",
+          "Jenkins request failed: HTTP 302",
+          302,
+        ),
+      )
+
+      await expect(client.safeRestart()).resolves.toEqual({ restarting: true })
+    })
+
+    it("should continue to reject other non-success responses", async () => {
+      const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb8" }
+      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
+      vi.mocked(common.httpPost).mockRejectedValue(
+        new common.McpError(
+          "HTTP_ERROR",
+          "Jenkins request failed: HTTP 503",
+          503,
+        ),
+      )
+
+      await expect(client.safeRestart()).rejects.toMatchObject({ status: 503 })
     })
   })
 

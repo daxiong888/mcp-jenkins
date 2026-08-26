@@ -1173,7 +1173,17 @@ export class JenkinsClient {
     const crumb = await this.ensureCrumb()
     const headers: Record<string, string> = this.headers()
     if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
-    await httpPost(`${this.baseUrl}/safeRestart`, { headers })
+    try {
+      // Jenkins schedules the restart and redirects to the controller root.
+      // Following that redirect races the shutdown window and can turn a
+      // successful restart request into a misleading HTTP 503.
+      await httpPost(`${this.baseUrl}/safeRestart`, {
+        headers,
+        redirect: "manual",
+      })
+    } catch (error) {
+      if (!(error instanceof McpError && error.status === 302)) throw error
+    }
     return { restarting: true }
   }
 

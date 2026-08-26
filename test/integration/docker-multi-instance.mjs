@@ -235,6 +235,7 @@ const main = async () => {
         "jenkins_delete_job",
         "jenkins_trigger_build",
         "jenkins_get_build_status",
+        "jenkins_stop_build",
         "jenkins_get_console_log",
         "jenkins_get_queue",
         "jenkins_cancel_queue",
@@ -376,6 +377,45 @@ const main = async () => {
       assert.match(combinedLog, /alpha-日志-0001/)
       assert.match(combinedLog, /alpha-日志-0600/)
 
+      await callOk(client, "jenkins_create_job", {
+        instance: "alpha",
+        jobName: "stop-job",
+        configXml: jobConfig(
+          "stop-owner",
+          "printf 'stop-started\\n'; sleep 300",
+        ),
+      })
+      await callOk(client, "jenkins_trigger_build", {
+        instance: "alpha",
+        jobName: "stop-job",
+      })
+      await waitUntil(async () => {
+        try {
+          const status = await callOk(client, "jenkins_get_build_status", {
+            instance: "alpha",
+            jobName: "stop-job",
+            buildNumber: 1,
+          })
+          return status.result === "RUNNING"
+        } catch {
+          return false
+        }
+      }, "Build did not start before the stop test")
+
+      await callOk(client, "jenkins_stop_build", {
+        instance: "alpha",
+        jobName: "stop-job",
+        buildNumber: 1,
+      })
+      await waitUntil(async () => {
+        const status = await callOk(client, "jenkins_get_build_status", {
+          instance: "alpha",
+          jobName: "stop-job",
+          buildNumber: 1,
+        })
+        return status.result === "ABORTED"
+      }, "Stopped build did not reach ABORTED")
+
       await callOk(client, "jenkins_quiet_down", {
         instance: "alpha",
         confirm: true,
@@ -429,7 +469,12 @@ const main = async () => {
         })
       }
 
-      for (const jobName of ["renamed-job", "build-job", "shared-job"]) {
+      for (const jobName of [
+        "renamed-job",
+        "stop-job",
+        "build-job",
+        "shared-job",
+      ]) {
         await callOk(client, "jenkins_delete_job", {
           instance: "alpha",
           jobName,

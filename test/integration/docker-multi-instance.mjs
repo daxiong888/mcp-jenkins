@@ -236,6 +236,7 @@ const main = async () => {
         "jenkins_trigger_build",
         "jenkins_get_build_status",
         "jenkins_stop_build",
+        "jenkins_delete_build",
         "jenkins_get_console_log",
         "jenkins_get_queue",
         "jenkins_cancel_queue",
@@ -376,6 +377,26 @@ const main = async () => {
       assert.equal(cursor, null)
       assert.match(combinedLog, /alpha-日志-0001/)
       assert.match(combinedLog, /alpha-日志-0600/)
+
+      await callOk(client, "jenkins_delete_build", {
+        instance: "alpha",
+        jobName: "build-job",
+        buildNumber: 1,
+      })
+      await waitUntil(async () => {
+        const result = await client.callTool({
+          name: "jenkins_get_build_status",
+          arguments: {
+            instance: "alpha",
+            jobName: "build-job",
+            buildNumber: 1,
+          },
+        })
+        if (result.isError !== true) return false
+        const error = toolText(result)
+        assert.equal(error.code, "JOB_NOT_FOUND")
+        return true
+      }, "Deleted build remained readable")
 
       await callOk(client, "jenkins_create_job", {
         instance: "alpha",

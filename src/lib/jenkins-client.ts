@@ -1008,7 +1008,7 @@ export class JenkinsClient {
     if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
       await httpPost(
-        `${this.baseUrl}/job/${jobPath(jobName)}/rename?newName=${encodeURIComponent(newName)}`,
+        `${this.baseUrl}/job/${jobPath(jobName)}/confirmRename?newName=${encodeURIComponent(newName)}`,
         { headers },
       )
       return { oldName: jobName, newName, renamed: true }

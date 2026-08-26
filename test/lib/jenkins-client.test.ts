@@ -857,8 +857,20 @@ describe("JenkinsClient", () => {
         renamed: true,
       })
       expect(common.httpPost).toHaveBeenCalledWith(
-        "https://jenkins.example.com/job/old-name/rename?newName=new-name",
+        "https://jenkins.example.com/job/old-name/confirmRename?newName=new-name",
         expect.anything(),
+      )
+    })
+
+    it("maps a missing source job to JOB_NOT_FOUND", async () => {
+      const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb3" }
+      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
+      vi.mocked(common.httpPost).mockRejectedValue(
+        new Error("Jenkins request failed: HTTP 404"),
+      )
+
+      await expect(client.renameJob("missing-job", "new-name")).rejects.toThrow(
+        "Job not found: missing-job",
       )
     })
   })

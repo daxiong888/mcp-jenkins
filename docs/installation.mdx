@@ -22,6 +22,33 @@ npm install
 npm run build
 ```
 
+## ✅ Release candidate validation
+
+For `3.0.0-rc.1`, the current source passed `npm test` (23 files, 244 tests),
+`npm run typecheck`, and `npm run build` locally on macOS arm64 with Node.js
+v24.11.1. An `npm pack` output from the same HEAD was installed in a disposable
+directory and completed an MCP stdio `initialize` handshake. This verifies the
+package candidate can be built and installed locally; it does not verify npm
+registry publication.
+
+Run the full disposable Jenkins compatibility matrix with:
+
+```bash
+npm run test:integration:docker:matrix
+```
+
+The matrix has passed for digest-pinned Jenkins 2.411, 2.477, and 2.568.2. Each
+version boots two local controllers and validates their reported versions,
+explicit instance routing, credential isolation, and the covered write paths.
+Replay is unit/mock tested but excluded from Docker because the stock controller
+images lack the required Pipeline/Workflow plugins.
+
+GitHub Actions is configured for Node.js 20, 22, and 24, but those hosted jobs
+have not run for the current unpushed commits; only Node.js v24.11.1 is locally
+verified. No write request was sent to a real Jenkins instance, and the local
+controllers do not reproduce real plugin sets, security policies, SSO, or
+reverse-proxy behaviour.
+
 > **Note:** Keep credentials off the command line entirely. `--api-token` / `--bearer-token` CLI arguments are visible in process lists, and any interactive command carrying a token — including `--env KEY=value` or `VAR=value` prefixes — lands in shell history. Put credentials in your MCP client's `env` config (a local config file — restrict its permissions and never commit it) or inject them from a secret manager. The command-line examples below therefore show only non-secret values.
 
 ## 🧭 Choose your environment

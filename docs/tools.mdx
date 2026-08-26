@@ -3,9 +3,12 @@ title: 🧰 Tools
 description: Full reference for all 38 Jenkins MCP tools, grouped by area.
 ---
 
-The server exposes **38 tools** covering ~95% of Jenkins API operations. Every tool
-accepts an optional `instance` parameter to target a specific Jenkins server when
-[multiple instances](/projects/mcp-jenkins/docs/configuration) are configured.
+The server exposes **38 tools** covering ~95% of Jenkins API operations. Every
+Jenkins-targeting tool accepts an `instance` parameter. It is optional with a
+single configured server and required when [multiple instances](/projects/mcp-jenkins/docs/configuration)
+are configured; there is no implicit first-instance fallback.
+`jenkins_list_instances` is the only exception because it lists the configured
+inventory without targeting one Jenkins server.
 
 ## 📋 Job Operations (12 tools)
 

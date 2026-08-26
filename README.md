@@ -83,6 +83,28 @@ The client config file itself contains your credentials: restrict its permission
 - **Pin a reviewed version** (e.g. `@daxiong888/mcp-jenkins@3.0.0`) for production or any write-capable setup; `@latest` is intended for evaluation and quick trials.
 - **Keep credentials off the command line entirely**: `--api-token` / `--bearer-token` flags leak into process lists, and any interactive command carrying a token — including `VAR=value` prefixes — lands in shell history. Inject credentials via your MCP client's `env` config or a secret manager, and never commit tokens to version control or print them to logs.
 
+## Validation status (3.0.0-rc.1)
+
+Evidence recorded on 2026-08-26 for the current release-candidate source. The
+scope limits below are part of the result:
+
+| Layer | Verified evidence |
+| --- | --- |
+| Local quality gates | `npm test` (23 files, 244 tests), `npm run typecheck`, and `npm run build` passed on macOS arm64 with Node.js v24.11.1. |
+| Node.js support | GitHub Actions is configured to run Node.js 20, 22, and 24. Those hosted jobs have not run for the current unpushed commits; only Node.js v24.11.1 is locally verified. |
+| Jenkins integration | `npm run test:integration:docker:matrix` passed with Jenkins 2.411, 2.477, and 2.568.2 images pinned by digest. Each leg boots two disposable local controllers, asserts both reported versions, and exercises explicit instance routing and credential isolation. |
+| Package candidate | An `npm pack` output created from the current HEAD was installed in a disposable directory and completed an MCP stdio `initialize` handshake as `3.0.0-rc.1`. This verifies packability, not npm registry publication. |
+
+The Docker matrix exercises job create/update/copy/rename/enable/disable/delete,
+build trigger/stop/delete, queue cancellation, node offline/online round trips,
+quiet-down recovery, safe restart, and crumb refresh after a controller restart.
+
+Replay is covered by unit/mock tests but is not included in the Docker matrix:
+the stock controller images do not include the Pipeline/Workflow plugins needed
+to create and replay a Pipeline job. No write request was sent to a real Jenkins
+instance. Real plugin sets, authentication/authorization policies, SSO, and
+reverse-proxy behaviour were not reproduced by the disposable Docker tests.
+
 ## Development
 
 ```sh

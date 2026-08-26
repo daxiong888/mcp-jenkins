@@ -11,7 +11,7 @@ Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
 
 ### Breaking changes
 
-- Multi-instance calls now require an explicit `instance`; configuration value counts must match, so credentials never fall back to the first Jenkins instance.
+- Multi-instance calls that target a Jenkins server now require an explicit `instance`; `jenkins_list_instances` remains an unscoped inventory call. Configuration value counts must match, so credentials never fall back to the first Jenkins instance.
 - Console log reads are bounded and cursor-based; the deprecated `fullLog` alias contains only the returned chunk.
 - Jenkins handler failures are returned as MCP tool results with `isError: true` instead of protocol-level JSON-RPC errors.
 
@@ -19,9 +19,20 @@ Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
 
 - All HTTP methods reject non-2xx responses with sanitized status-only errors and dedicated authentication/permission failures.
 - Write operations propagate Jenkins failures, validate job paths, and expose queue IDs for triggered and replayed builds.
+- Safe restart handles Jenkins' scheduling redirect without following it into the controller shutdown window, and clears the cached crumb/session state after accepting the restart.
+- Write requests refresh the crumb/session and retry exactly once after a 403; a genuine permission failure remains a 403 on the second attempt.
+- `jenkins_list_nodes` returns the controller's URL-usable `(built-in)` name alongside its display name; node reads and toggles also accept the `master`, `(master)`, `built-in`, `(built-in)`, and `Built-In Node` aliases.
 - Tool filtering is enforced for both discovery and calls, input schemas are validated at runtime, and logs redact URLs, credentials, authorization headers, and response bodies.
 - Recursive job traversal, recent build queries, artifact downloads, and console logs are bounded.
 - Console log cursors now follow the exact plain-text output bytes, preventing dropped or corrupted text across UTF-8 and Jenkins line-ending boundaries.
+
+### Validation status — 2026-08-26
+
+- `npm test` (23 files, 244 tests), `npm run typecheck`, and `npm run build` passed locally on macOS arm64 with Node.js v24.11.1.
+- `npm run test:integration:docker:matrix` passed in two independent local runs. Each Jenkins 2.411, 2.477, and 2.568.2 leg used two disposable controllers, asserted the reported versions, and exercised explicit instance/credential isolation plus the covered write paths.
+- An `npm pack` output from the current HEAD was installed in a disposable directory and completed an MCP stdio `initialize` handshake as `3.0.0-rc.1`; no registry publication was tested.
+- GitHub Actions is configured for Node.js 20, 22, and 24, but the hosted matrix has not run for the current unpushed commits.
+- Replay has unit/mock coverage but was excluded from Docker because the stock controller images lack the required Pipeline/Workflow plugins. No write request was sent to a real Jenkins instance, and the Docker controllers did not reproduce real plugin, security, SSO, or reverse-proxy configuration.
 
 ---
 

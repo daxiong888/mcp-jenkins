@@ -97,7 +97,7 @@
     },
     {
       "name": "jenkins_list_nodes",
-      "description": "List all Jenkins nodes/agents and their status"
+      "description": "List all Jenkins nodes/agents and their status. Use each result's name with get_node or toggle_node_offline; displayName is for display only."
     },
     {
       "name": "jenkins_get_system_info",

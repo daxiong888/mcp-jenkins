@@ -758,6 +758,29 @@ describe("JenkinsClient", () => {
     })
   })
 
+  describe("listNodes", () => {
+    it("should return a URL-usable name for the built-in controller", async () => {
+      vi.mocked(common.httpGetJson).mockResolvedValue({
+        computer: [
+          {
+            displayName: "Built-In Node",
+            offline: false,
+            idle: true,
+            numExecutors: 2,
+            temporarilyOffline: false,
+          },
+        ],
+      })
+
+      const nodes = await client.listNodes()
+
+      expect(nodes[0]).toMatchObject({
+        name: "(built-in)",
+        displayName: "Built-In Node",
+      })
+    })
+  })
+
   describe("getSystemInfo", () => {
     it("should return Jenkins system info", async () => {
       const mockResponse = {
@@ -940,6 +963,34 @@ describe("JenkinsClient", () => {
       expect(result.assignedLabels).toEqual(["linux"])
     })
 
+    it("should resolve the built-in controller display-name alias", async () => {
+      vi.mocked(common.httpGetJson).mockResolvedValue({
+        displayName: "Built-In Node",
+        assignedLabels: [],
+      })
+
+      await client.getNode("Built-In Node")
+
+      expect(common.httpGetJson).toHaveBeenCalledWith(
+        "https://jenkins.example.com/computer/(built-in)/api/json?depth=1",
+        expect.anything(),
+      )
+    })
+
+    it("should resolve the unparenthesized built-in controller alias", async () => {
+      vi.mocked(common.httpGetJson).mockResolvedValue({
+        displayName: "Built-In Node",
+        assignedLabels: [],
+      })
+
+      await client.getNode("built-in")
+
+      expect(common.httpGetJson).toHaveBeenCalledWith(
+        "https://jenkins.example.com/computer/(built-in)/api/json?depth=1",
+        expect.anything(),
+      )
+    })
+
     it("should throw on 404", async () => {
       vi.mocked(common.httpGetJson).mockRejectedValue(new Error("HTTP 404"))
 
@@ -960,6 +1011,19 @@ describe("JenkinsClient", () => {
       expect(result).toEqual({ nodeName: "agent-1", toggledOffline: true })
       expect(common.httpPost).toHaveBeenCalledWith(
         expect.stringContaining("agent-1/toggleOffline"),
+        expect.anything(),
+      )
+    })
+
+    it("should resolve the legacy master alias to the built-in controller", async () => {
+      const mockCrumb = { crumbRequestField: "Jenkins-Crumb", crumb: "crumb5" }
+      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockCrumb))
+      vi.mocked(common.httpPost).mockResolvedValue({ status: 200, headers: {} })
+
+      await client.toggleNodeOffline("master")
+
+      expect(common.httpPost).toHaveBeenCalledWith(
+        "https://jenkins.example.com/computer/(built-in)/toggleOffline?offlineMessage=",
         expect.anything(),
       )
     })

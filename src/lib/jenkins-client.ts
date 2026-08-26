@@ -26,6 +26,25 @@ const jobPath = (name: string): string =>
     })
     .join("/job/")
 
+// Jenkins exposes the controller as a human-readable display name but routes it
+// through the stable `(built-in)` URL token. Keep list/read/write round-trippable
+// while preserving the controller aliases documented by older releases.
+const normalizeNodeName = (name: string): string => {
+  if (
+    name === "Built-In Node" ||
+    name === "built-in" ||
+    name === "master" ||
+    name === "(master)" ||
+    name === "(built-in)"
+  ) {
+    return "(built-in)"
+  }
+  return name
+}
+
+const nodePath = (name: string): string =>
+  encodeURIComponent(normalizeNodeName(name))
+
 const normalizeJobFullName = (name: string): string => {
   const fullName = name.trim().replace(/^\/+|\/+$/g, "")
   if (
@@ -831,19 +850,23 @@ export class JenkinsClient {
         { headers: this.headers() },
       )
       if (!data.computer) return []
-      return data.computer.map((node: any) => ({
-        name: node.displayName || "",
-        offline: node.offline || false,
-        idle: node.idle || false,
-        numExecutors: node.numExecutors || 0,
-        busyExecutors: node.monitorData?.[
-          "hudson.node_monitors.SwapSpaceMonitor"
-        ]?.availablePhysicalMemory
-          ? 0
-          : node.numExecutors,
-        temporarilyOffline: node.temporarilyOffline || false,
-        offlineCauseReason: node.offlineCauseReason || "",
-      }))
+      return data.computer.map((node: any) => {
+        const displayName = node.displayName || ""
+        return {
+          name: normalizeNodeName(displayName),
+          displayName,
+          offline: node.offline || false,
+          idle: node.idle || false,
+          numExecutors: node.numExecutors || 0,
+          busyExecutors: node.monitorData?.[
+            "hudson.node_monitors.SwapSpaceMonitor"
+          ]?.availablePhysicalMemory
+            ? 0
+            : node.numExecutors,
+          temporarilyOffline: node.temporarilyOffline || false,
+          offlineCauseReason: node.offlineCauseReason || "",
+        }
+      })
     } catch (e: any) {
       throw e
     }
@@ -1049,7 +1072,7 @@ export class JenkinsClient {
   async getNode(nodeName: string): Promise<any> {
     try {
       const data = await httpGetJson<any>(
-        `${this.baseUrl}/computer/${encodeURIComponent(nodeName)}/api/json?depth=1`,
+        `${this.baseUrl}/computer/${nodePath(nodeName)}/api/json?depth=1`,
         { headers: this.headers() },
       )
       return {
@@ -1078,7 +1101,7 @@ export class JenkinsClient {
     if (crumb) headers[crumb.crumbRequestField] = crumb.crumb
     try {
       await httpPost(
-        `${this.baseUrl}/computer/${encodeURIComponent(nodeName)}/toggleOffline?offlineMessage=${encodeURIComponent(offlineMessage)}`,
+        `${this.baseUrl}/computer/${nodePath(nodeName)}/toggleOffline?offlineMessage=${encodeURIComponent(offlineMessage)}`,
         { headers },
       )
       return { nodeName, toggledOffline: true }

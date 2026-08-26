@@ -513,7 +513,8 @@ export const rawTools: Tool[] = [
   },
   {
     name: "jenkins_list_nodes",
-    description: "List all Jenkins nodes/agents and their status",
+    description:
+      "List all Jenkins nodes/agents and their status. Use each result's name with get_node or toggle_node_offline; displayName is for display only.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -630,7 +631,7 @@ export const rawTools: Tool[] = [
         nodeName: {
           type: "string",
           description:
-            "Node/agent name (use 'master' or 'Built-In Node' for the controller)",
+            "Node/agent name (use '(built-in)' for the controller; 'built-in', 'master', and 'Built-In Node' aliases are accepted)",
         },
       },
       required: ["nodeName"],
@@ -643,7 +644,11 @@ export const rawTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        nodeName: { type: "string", description: "Node/agent name" },
+        nodeName: {
+          type: "string",
+          description:
+            "Node/agent name (use '(built-in)' for the controller; 'built-in', 'master', and 'Built-In Node' aliases are accepted)",
+        },
         offlineMessage: {
           type: "string",
           description: "Optional reason for taking the node offline",

@@ -4,6 +4,26 @@ All notable changes to this project are documented here.
 
 ---
 
+## [3.0.0-rc.1] — Unreleased
+
+Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
+[`kud/mcp-jenkins`](https://github.com/kud/mcp-jenkins) v2.2.0.
+
+### Breaking changes
+
+- Multi-instance calls now require an explicit `instance`; configuration value counts must match, so credentials never fall back to the first Jenkins instance.
+- Console log reads are bounded and cursor-based; the deprecated `fullLog` alias contains only the returned chunk.
+- Jenkins handler failures are returned as MCP tool results with `isError: true` instead of protocol-level JSON-RPC errors.
+
+### Reliability and security
+
+- All HTTP methods reject non-2xx responses with sanitized status-only errors and dedicated authentication/permission failures.
+- Write operations propagate Jenkins failures, validate job paths, and expose queue IDs for triggered and replayed builds.
+- Tool filtering is enforced for both discovery and calls, input schemas are validated at runtime, and logs redact URLs, credentials, authorization headers, and response bodies.
+- Recursive job traversal, recent build queries, artifact downloads, and console logs are bounded.
+
+---
+
 ## [2.2.0] — 2026-08-11
 
 ### ✨ Features

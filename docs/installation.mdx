@@ -5,16 +5,18 @@ description: Per-client setup guides for Claude Code, Claude Desktop, Cursor, VS
 
 ## 📦 Installation Options
 
+> **Release candidate status:** the independent npm package is not published yet. Until it is available in the registry, use the local installation option below.
+
 **Option 1: Via npm (recommended)** — no installation needed, just use `npx` in your MCP config:
 
 ```bash
-npx --yes @kud/mcp-jenkins@latest
+npx --yes @daxiong888/mcp-jenkins@latest
 ```
 
 **Option 2: Local installation:**
 
 ```bash
-git clone https://github.com/kud/mcp-jenkins.git
+git clone https://github.com/daxiong888/mcp-jenkins.git
 cd mcp-jenkins
 npm install
 npm run build
@@ -43,14 +45,14 @@ npm run build
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL=https://pipeline.yourcompany.com \
-  -- npx --yes @kud/mcp-jenkins@latest
+  -- npx --yes @daxiong888/mcp-jenkins@latest
 ```
 
 **Via npm with a CLI URL arg:**
 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
-  -- npx --yes @kud/mcp-jenkins@latest \
+  -- npx --yes @daxiong888/mcp-jenkins@latest \
   --url https://pipeline.yourcompany.com
 ```
 
@@ -67,7 +69,7 @@ claude mcp add --transport stdio --scope user jenkins \
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL="https://pipeline.yourcompany.com,https://scheduler.yourcompany.com" \
-  -- npx --yes @kud/mcp-jenkins@latest
+  -- npx --yes @daxiong888/mcp-jenkins@latest
 # Instances named "pipeline" and "scheduler" automatically from hostnames
 ```
 
@@ -114,7 +116,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -134,7 +136,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
       "command": "npx",
       "args": [
         "--yes",
-        "@kud/mcp-jenkins@latest",
+        "@daxiong888/mcp-jenkins@latest",
         "--url",
         "https://pipeline.yourcompany.com"
       ],
@@ -172,7 +174,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_BEARER_TOKEN": "your_bearer_token"
@@ -189,7 +191,7 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com,https://scheduler.yourcompany.com",
         "MCP_JENKINS_USER": "your_username,your_username",
@@ -217,7 +219,7 @@ Settings (Cmd+, / Ctrl+,) → Search "Cline: MCP Settings" → Edit in settings.
   "cline.mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["@kud/mcp-jenkins"],
+      "args": ["@daxiong888/mcp-jenkins"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -235,7 +237,7 @@ Settings (Cmd+, / Ctrl+,) → Search "Cline: MCP Settings" → Edit in settings.
   "cline.mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["@kud/mcp-jenkins"],
+      "args": ["@daxiong888/mcp-jenkins"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com,https://scheduler.yourcompany.com",
         "MCP_JENKINS_USER": "your_username,your_username",
@@ -265,7 +267,7 @@ Settings (Cmd+, / Ctrl+,) → Search "MCP" → Edit Config or open `~/.cursor/mc
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -283,7 +285,7 @@ Settings (Cmd+, / Ctrl+,) → Search "MCP" → Edit Config or open `~/.cursor/mc
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com,https://scheduler.yourcompany.com",
         "MCP_JENKINS_USER": "your_username,your_username",
@@ -309,7 +311,7 @@ Settings → **AI Settings** → **Model Context Protocol** → Add Server:
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -327,7 +329,7 @@ Settings → **AI Settings** → **Model Context Protocol** → Add Server:
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com,https://scheduler.yourcompany.com",
         "MCP_JENKINS_USER": "your_username,your_username",
@@ -369,7 +371,7 @@ Create or edit `~/.copilot/mcp-config.json`:
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -393,7 +395,7 @@ Credentials stay in `env`; only the non-secret URL is passed as an argument:
       "command": "npx",
       "args": [
         "--yes",
-        "@kud/mcp-jenkins@latest",
+        "@daxiong888/mcp-jenkins@latest",
         "--url",
         "https://pipeline.yourcompany.com"
       ],
@@ -429,7 +431,7 @@ For local installation, use `"command": "node"` with the path in args and creden
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com,https://scheduler.yourcompany.com",
         "MCP_JENKINS_USER": "your_username,your_username",
@@ -456,7 +458,7 @@ Settings (Cmd+, / Ctrl+,) → **Tools** → **AI Assistant** → **Model Context
 
 - **Name:** Jenkins
 - **Command:** `npx`
-- **Arguments:** `--yes @kud/mcp-jenkins@latest`
+- **Arguments:** `--yes @daxiong888/mcp-jenkins@latest`
 - **Environment Variables:**
   ```
   MCP_JENKINS_URL=https://pipeline.yourcompany.com

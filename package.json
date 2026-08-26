@@ -1,7 +1,7 @@
 {
-  "name": "@kud/mcp-jenkins",
-  "version": "2.2.0",
-  "description": "Jenkins MCP server with bearer token authentication support",
+  "name": "@daxiong888/mcp-jenkins",
+  "version": "3.0.0-rc.1",
+  "description": "Jenkins MCP server with reliable writes and safe multi-instance routing",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -37,11 +37,17 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/kud/mcp-jenkins.git"
+    "url": "https://github.com/daxiong888/mcp-jenkins.git"
   },
-  "homepage": "https://kud.github.io/mcp-jenkins",
-  "author": "kud",
+  "homepage": "https://github.com/daxiong888/mcp-jenkins#readme",
+  "bugs": {
+    "url": "https://github.com/daxiong888/mcp-jenkins/issues"
+  },
+  "author": "daxiong888",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "npm@11.6.2",
   "engines": {
     "node": ">=20.0.0"

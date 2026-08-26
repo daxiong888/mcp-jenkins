@@ -2,14 +2,16 @@
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
-![npm](https://img.shields.io/npm/v/@kud/mcp-jenkins?style=flat-square&color=CB3837)
+![npm](https://img.shields.io/npm/v/@daxiong888/mcp-jenkins?style=flat-square&color=CB3837)
 ![MIT](https://img.shields.io/badge/licence-MIT-22C55E?style=flat-square)
 
-**Jenkins MCP server with bearer token authentication support**
+**Jenkins MCP server with reliable writes and safe multi-instance routing**
 
-<a href="https://kud.io/projects/mcp-jenkins">Website</a> · <a href="https://kud.io/projects/mcp-jenkins/docs">Documentation</a>
+<a href="https://github.com/daxiong888/mcp-jenkins">Repository</a> · <a href="https://github.com/daxiong888/mcp-jenkins/tree/main/docs">Documentation</a>
 
 </div>
+
+> This is an independent fork of [kud/mcp-jenkins](https://github.com/kud/mcp-jenkins). The original project and copyright remain attributed under the MIT license. This fork uses a separate npm scope and is not an upstream release.
 
 ## Features
 
@@ -18,12 +20,14 @@
 - **Multiple instances** — connect to several Jenkins servers simultaneously using comma-separated env vars
 - **Pipeline awareness** — retrieve stage-by-stage pipeline status, console logs, test results, and build artefacts
 - **Node management** — list agents, toggle nodes online/offline, and inspect system info without leaving your AI client
-- **Zero-install usage** — run directly via `npx --yes @kud/mcp-jenkins@latest` with no local setup required
+- **Zero-install usage** — run directly via `npx --yes @daxiong888/mcp-jenkins@latest` with no local setup required after the package is published
 
 ## Install
 
+> Release candidate status: this independent package is not published yet. Use the local development installation below until it is available in the npm registry.
+
 ```sh
-npm install -g @kud/mcp-jenkins
+npm install -g @daxiong888/mcp-jenkins
 ```
 
 Or use without installing via `npx` (see Usage below).
@@ -37,7 +41,7 @@ Add the server to your MCP client config. The recommended approach uses environm
   "mcpServers": {
     "jenkins": {
       "command": "npx",
-      "args": ["--yes", "@kud/mcp-jenkins@latest"],
+      "args": ["--yes", "@daxiong888/mcp-jenkins@latest"],
       "env": {
         "MCP_JENKINS_URL": "https://pipeline.yourcompany.com",
         "MCP_JENKINS_USER": "your_username",
@@ -76,13 +80,13 @@ The client config file itself contains your credentials: restrict its permission
 - **All 38 tools are exposed by default**, including write and destructive ones (trigger/stop/delete builds, create/delete/rename jobs, quiet down, restart). Nothing is read-only unless you make it so.
 - **Prefer an allowlist** (`MCP_JENKINS_ALLOW_TOOLS`) to lock the server down to what you actually need — it is enforced for both `tools/list` and `tools/call`. A blocklist (`MCP_JENKINS_BLOCK_TOOLS`) works, but any write tool added in a future release is exposed until you update your list.
 - **Use a dedicated, least-privilege Jenkins identity** — the server can do everything its credentials can do.
-- **Pin a reviewed version** (e.g. `@kud/mcp-jenkins@2.2.0`) for production or any write-capable setup; `@latest` is intended for evaluation and quick trials.
+- **Pin a reviewed version** (e.g. `@daxiong888/mcp-jenkins@3.0.0`) for production or any write-capable setup; `@latest` is intended for evaluation and quick trials.
 - **Keep credentials off the command line entirely**: `--api-token` / `--bearer-token` flags leak into process lists, and any interactive command carrying a token — including `VAR=value` prefixes — lands in shell history. Inject credentials via your MCP client's `env` config or a secret manager, and never commit tokens to version control or print them to logs.
 
 ## Development
 
 ```sh
-git clone https://github.com/kud/mcp-jenkins.git
+git clone https://github.com/daxiong888/mcp-jenkins.git
 cd mcp-jenkins
 npm install
 npm run dev
@@ -94,4 +98,4 @@ To test interactively with the MCP Inspector:
 npm run inspect:dev
 ```
 
-📚 **Full documentation → [mcp-jenkins/docs](https://kud.io/projects/mcp-jenkins/docs)**
+📚 **Full documentation → [mcp-jenkins/docs](https://github.com/daxiong888/mcp-jenkins/tree/main/docs)**

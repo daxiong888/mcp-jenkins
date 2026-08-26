@@ -33,7 +33,7 @@ CI/CD workflows, with native integration for Claude Desktop and the Claude Code 
 ```bash
 claude mcp add --transport stdio --scope user jenkins \
   --env MCP_JENKINS_URL=https://your-jenkins.com \
-  -- npx --yes @kud/mcp-jenkins@latest
+  -- npx --yes @daxiong888/mcp-jenkins@latest
 ```
 
 Then add `MCP_JENKINS_USER`/`MCP_JENKINS_API_TOKEN` (or `MCP_JENKINS_BEARER_TOKEN`) to the generated client config's `env` block — token values on a command line land in shell history. See [Installation](/projects/mcp-jenkins/docs/installation).
@@ -94,4 +94,4 @@ AI: *Shows Jenkins version*
 
 ## 📄 License
 
-MIT License - see the [LICENSE](https://github.com/kud/mcp-jenkins/blob/main/LICENSE) file.
+MIT License - see the [LICENSE](https://github.com/daxiong888/mcp-jenkins/blob/main/LICENSE) file.

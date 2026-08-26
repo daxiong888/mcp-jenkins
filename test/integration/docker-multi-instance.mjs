@@ -8,8 +8,22 @@ import { spawn } from "node:child_process"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
-const JENKINS_IMAGE =
+const DEFAULT_JENKINS_IMAGE =
   "jenkins/jenkins@sha256:8547df3b0db2803d158ecc9499207a056bb30c23fddc18bb5b4a4dc14e77dd09"
+const DEFAULT_JENKINS_VERSION = "2.568.2"
+// Both instances intentionally use the same image. This harness validates
+// multi-instance routing within one Jenkins-version matrix leg, not mixed
+// Jenkins versions inside a single MCP process.
+const configuredImage = process.env.MCP_JENKINS_TEST_IMAGE
+const configuredVersion = process.env.MCP_JENKINS_TEST_EXPECTED_VERSION
+assert.equal(
+  Boolean(configuredImage),
+  Boolean(configuredVersion),
+  "MCP_JENKINS_TEST_IMAGE and MCP_JENKINS_TEST_EXPECTED_VERSION must be set together",
+)
+const JENKINS_IMAGE = configuredImage ?? DEFAULT_JENKINS_IMAGE
+const EXPECTED_JENKINS_VERSION =
+  configuredVersion ?? DEFAULT_JENKINS_VERSION
 const REPO_ROOT = resolve(new URL("../..", import.meta.url).pathname)
 const runId = `${process.pid}-${Date.now()}`
 const containers = [`mcp-jenkins-alpha-${runId}`, `mcp-jenkins-beta-${runId}`]
@@ -307,6 +321,7 @@ const main = async () => {
       })
       assert.notEqual(alphaVersion.version, "unknown")
       assert.equal(betaVersion.version, alphaVersion.version)
+      assert.equal(alphaVersion.version, EXPECTED_JENKINS_VERSION)
 
       for (const instance of ["alpha", "beta"]) {
         const jobs = await callOk(client, "jenkins_list_jobs", { instance })
@@ -714,6 +729,7 @@ const main = async () => {
           node: process.version,
           platform: `${process.platform}-${process.arch}`,
           image: JENKINS_IMAGE,
+          expectedJenkinsVersion: EXPECTED_JENKINS_VERSION,
           jenkinsVersions: versions,
           instances: 2,
           realJenkinsAccessed: false,

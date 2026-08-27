@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 
 ---
 
-## [3.0.0-rc.1] — Unreleased
+## [3.0.0-rc.1] — 2026-08-27
 
 Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
 [`kud/mcp-jenkins`](https://github.com/kud/mcp-jenkins) v2.2.0.
@@ -26,12 +26,13 @@ Independent release candidate under `@daxiong888/mcp-jenkins`, forked from
 - Recursive job traversal, recent build queries, artifact downloads, and console logs are bounded.
 - Console log cursors now follow the exact plain-text output bytes, preventing dropped or corrupted text across UTF-8 and Jenkins line-ending boundaries.
 
-### Validation status — 2026-08-26
+### Validation status — 2026-08-27
 
 - `npm test` (23 files, 244 tests), `npm run typecheck`, and `npm run build` passed locally on macOS arm64 with Node.js v24.11.1.
 - `npm run test:integration:docker:matrix` passed in two independent local runs. Each Jenkins 2.411, 2.477, and 2.568.2 leg used two disposable controllers, asserted the reported versions, and exercised explicit instance/credential isolation plus the covered write paths.
-- An `npm pack` output from the current HEAD was installed in a disposable directory and completed an MCP stdio `initialize` handshake as `3.0.0-rc.1`; no registry publication was tested.
-- GitHub Actions is configured for Node.js 20, 22, and 24, but the hosted matrix has not run for the current unpushed commits.
+- The published npm Registry `next` tarball matched SHA-1 `e593281fcc00ce4783f25fde7c60d8797d1473a3`; a clean install completed an MCP stdio `initialize` handshake as `3.0.0-rc.1`, listed 38 tools, and kept the test URL and credentials out of stderr.
+- [GitHub Actions run 33042439411](https://github.com/daxiong888/mcp-jenkins/actions/runs/33042439411) passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24.
+- npm assigned both `next` and the required `latest` dist-tag to this first published version. A future stable `3.0.0` release will move `latest`; `next` remains the release-candidate channel.
 - Replay has unit/mock coverage but was excluded from Docker because the stock controller images lack the required Pipeline/Workflow plugins. No write request was sent to a real Jenkins instance, and the Docker controllers did not reproduce real plugin, security, SSO, or reverse-proxy configuration.
 
 ---

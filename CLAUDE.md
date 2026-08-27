@@ -6,7 +6,7 @@ Official API docs: https://www.jenkins.io/doc/book/using/remote-access-api/
 
 ## Distribution
 
-The independent package identity is `@daxiong888/mcp-jenkins`; once published it runs as an stdio server via `npx --yes @daxiong888/mcp-jenkins@latest`, a global install, or `/plugin install`. The client spawns and owns the process. The original project remains attributed in `LICENSE`, `README.md`, and `CHANGELOG.md`.
+The independent package identity is `@daxiong888/mcp-jenkins`; the published release candidate runs as an stdio server via `npx --yes @daxiong888/mcp-jenkins@next`, a global install, or `/plugin install`. The client spawns and owns the process. The original project remains attributed in `LICENSE`, `README.md`, and `CHANGELOG.md`.
 
 Container packaging (Dockerfile, ghcr publishing) is therefore out of scope: images serve remote or containerised MCP hosting, where something else manages the process lifecycle. That is not how this server is consumed, so an image would be a release surface with no users behind it. Decline such contributions with the reason rather than a bare "no" — see PR #15.
 

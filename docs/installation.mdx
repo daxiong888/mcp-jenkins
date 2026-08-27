@@ -5,12 +5,12 @@ description: Per-client setup guides for Claude Code, Claude Desktop, Cursor, VS
 
 ## 📦 Installation Options
 
-> **Release candidate status:** the independent npm package is not published yet. Until it is available in the registry, use the local installation option below.
+> **Release candidate status:** `@daxiong888/mcp-jenkins@3.0.0-rc.1` is published. Use `@next` for release-candidate evaluation and pin `@3.0.0-rc.1` for a reviewed deployment.
 
 **Option 1: Via npm (recommended)** — no installation needed, just use `npx` in your MCP config:
 
 ```bash
-npx --yes @daxiong888/mcp-jenkins@latest
+npx --yes @daxiong888/mcp-jenkins@next
 ```
 
 **Option 2: Local installation:**
@@ -24,12 +24,12 @@ npm run build
 
 ## ✅ Release candidate validation
 
-For `3.0.0-rc.1`, the current source passed `npm test` (23 files, 244 tests),
+For `3.0.0-rc.1`, the release source passed `npm test` (23 files, 244 tests),
 `npm run typecheck`, and `npm run build` locally on macOS arm64 with Node.js
-v24.11.1. An `npm pack` output from the same HEAD was installed in a disposable
-directory and completed an MCP stdio `initialize` handshake. This verifies the
-package candidate can be built and installed locally; it does not verify npm
-registry publication.
+v24.11.1. The published `@next` tarball matched npm's recorded SHA-1, and a
+clean registry install completed an MCP stdio `initialize` handshake as
+`3.0.0-rc.1`, listed 38 tools, and kept the test URL and credentials out of
+stderr.
 
 Run the full disposable Jenkins compatibility matrix with:
 
@@ -43,11 +43,16 @@ explicit instance routing, credential isolation, and the covered write paths.
 Replay is unit/mock tested but excluded from Docker because the stock controller
 images lack the required Pipeline/Workflow plugins.
 
-GitHub Actions is configured for Node.js 20, 22, and 24, but those hosted jobs
-have not run for the current unpushed commits; only Node.js v24.11.1 is locally
-verified. No write request was sent to a real Jenkins instance, and the local
-controllers do not reproduce real plugin sets, security policies, SSO, or
-reverse-proxy behaviour.
+[GitHub Actions run 33042439411](https://github.com/daxiong888/mcp-jenkins/actions/runs/33042439411)
+passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24. No
+write request was sent to a real Jenkins instance, and the local controllers do
+not reproduce real plugin sets, security policies, SSO, or reverse-proxy
+behaviour.
+
+Because `3.0.0-rc.1` is the package's first published version, npm also points
+`latest` at it. npm requires the `latest` dist-tag, so it cannot be removed.
+This is currently the package's only published version; a future stable `3.0.0`
+release will move `latest`, while `next` remains the release-candidate channel.
 
 > **Note:** Keep credentials off the command line entirely. `--api-token` / `--bearer-token` CLI arguments are visible in process lists, and any interactive command carrying a token — including `--env KEY=value` or `VAR=value` prefixes — lands in shell history. Put credentials in your MCP client's `env` config (a local config file — restrict its permissions and never commit it) or inject them from a secret manager. The command-line examples below therefore show only non-secret values.
 

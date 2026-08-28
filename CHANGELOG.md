@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## [3.0.0-rc.2] — 2026-08-28
+
+Trusted Publisher release candidate with no Jenkins runtime behaviour changes
+from `3.0.0-rc.1`.
+
+### Release tooling and metadata
+
+- The GitHub Actions release job pins npm 11.6.2, reports the Node.js/npm toolchain, and publishes with npm Trusted Publishing provenance.
+- Package, lockfile, and MCP manifest versions are aligned at `3.0.0-rc.2`.
+- Release metadata validation, the focused manifest/version tests (9 tests), `npm test` (23 files, 244 tests), `npm run typecheck`, `npm run build`, and `npm publish --dry-run --access public --tag next` passed locally on macOS arm64 with Node.js v24.11.1.
+- Registry, provenance, and clean-install results are intentionally deferred until the tag-triggered publication completes.
+
+---
+
 ## [3.0.0-rc.1] — 2026-08-27
 
 Independent release candidate under `@daxiong888/mcp-jenkins`, forked from

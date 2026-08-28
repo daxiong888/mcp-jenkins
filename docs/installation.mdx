@@ -5,7 +5,7 @@ description: Per-client setup guides for Claude Code, Claude Desktop, Cursor, VS
 
 ## 📦 Installation Options
 
-> **Release candidate status:** `@daxiong888/mcp-jenkins@3.0.0-rc.1` is published. Use `@next` for release-candidate evaluation and pin `@3.0.0-rc.1` for a reviewed deployment.
+> **Release candidate status:** `3.0.0-rc.2` is the current source candidate for a Trusted Publisher release. Until its Registry and provenance checks are recorded, `3.0.0-rc.1` remains the published baseline verified below. Use `@next` for evaluation and pin an exact reviewed version for deployment.
 
 **Option 1: Via npm (recommended)** — no installation needed, just use `npx` in your MCP config:
 
@@ -23,6 +23,10 @@ npm run build
 ```
 
 ## ✅ Release candidate validation
+
+`3.0.0-rc.2` changes release metadata and documentation only. Its Registry,
+provenance, and clean-install checks are not claimed before publication. The
+runtime baseline remains the following `3.0.0-rc.1` evidence.
 
 For `3.0.0-rc.1`, the release source passed `npm test` (23 files, 244 tests),
 `npm run typecheck`, and `npm run build` locally on macOS arm64 with Node.js
@@ -49,10 +53,10 @@ write request was sent to a real Jenkins instance, and the local controllers do
 not reproduce real plugin sets, security policies, SSO, or reverse-proxy
 behaviour.
 
-Because `3.0.0-rc.1` is the package's first published version, npm also points
-`latest` at it. npm requires the `latest` dist-tag, so it cannot be removed.
-This is currently the package's only published version; a future stable `3.0.0`
-release will move `latest`, while `next` remains the release-candidate channel.
+Because `3.0.0-rc.1` was the package's first published version, npm also points
+`latest` at it. npm requires the `latest` dist-tag, so it cannot be removed. The
+`next` tag tracks the newest published release candidate; a future stable
+`3.0.0` release will move `latest`.
 
 > **Note:** Keep credentials off the command line entirely. `--api-token` / `--bearer-token` CLI arguments are visible in process lists, and any interactive command carrying a token — including `--env KEY=value` or `VAR=value` prefixes — lands in shell history. Put credentials in your MCP client's `env` config (a local config file — restrict its permissions and never commit it) or inject them from a secret manager. The command-line examples below therefore show only non-secret values.
 

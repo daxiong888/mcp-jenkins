@@ -24,17 +24,16 @@
 
 ## Install
 
-> Release candidate status: `@daxiong888/mcp-jenkins@3.0.0-rc.1` is published. Use the `next` tag for release-candidate evaluation and pin the exact version for any reviewed deployment.
+> Release candidate status: `3.0.0-rc.2` is the current source candidate for a Trusted Publisher release. Until its Registry and provenance checks are recorded, `3.0.0-rc.1` remains the published baseline verified below. Use `next` for release-candidate evaluation and pin an exact reviewed version for deployment.
 
 ```sh
 npm install -g @daxiong888/mcp-jenkins@next
 ```
 
-Or use without installing via `npx` (see Usage below). Because this is the
-first published version, npm also assigned `latest` to `3.0.0-rc.1`; the npm
-registry requires a `latest` dist-tag, so it cannot be removed. This is
-currently the package's only published version; a future stable `3.0.0` release
-will move `latest`, while `next` remains the release-candidate channel.
+Or use without installing via `npx` (see Usage below). npm assigned `latest` to
+the first published version, `3.0.0-rc.1`, and requires that dist-tag to exist.
+The `next` tag tracks the newest published release candidate; a future stable
+`3.0.0` release will move `latest`.
 
 ## Usage
 
@@ -87,10 +86,12 @@ The client config file itself contains your credentials: restrict its permission
 - **Pin a reviewed version** (e.g. `@daxiong888/mcp-jenkins@3.0.0`) for production or any write-capable setup; `@latest` is intended for evaluation and quick trials.
 - **Keep credentials off the command line entirely**: `--api-token` / `--bearer-token` flags leak into process lists, and any interactive command carrying a token — including `VAR=value` prefixes — lands in shell history. Inject credentials via your MCP client's `env` config or a secret manager, and never commit tokens to version control or print them to logs.
 
-## Validation status (3.0.0-rc.1)
+## Validation status
 
-Evidence recorded on 2026-08-27 for the published release candidate. The
-scope limits below are part of the result:
+`3.0.0-rc.2` changes release metadata and documentation only; its Registry and
+provenance checks are not claimed before publication. The runtime baseline
+remains the `3.0.0-rc.1` evidence recorded on 2026-08-27. The scope limits below
+are part of that result:
 
 | Layer | Verified evidence |
 | --- | --- |

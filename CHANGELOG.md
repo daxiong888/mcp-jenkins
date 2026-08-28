@@ -14,7 +14,10 @@ from `3.0.0-rc.1`.
 - The GitHub Actions release job pins npm 11.6.2, reports the Node.js/npm toolchain, and publishes with npm Trusted Publishing provenance.
 - Package, lockfile, and MCP manifest versions are aligned at `3.0.0-rc.2`.
 - Release metadata validation, the focused manifest/version tests (9 tests), `npm test` (23 files, 244 tests), `npm run typecheck`, `npm run build`, and `npm publish --dry-run --access public --tag next` passed locally on macOS arm64 with Node.js v24.11.1.
-- Registry, provenance, and clean-install results are intentionally deferred until the tag-triggered publication completes.
+- [Release run 33135016184](https://github.com/daxiong888/mcp-jenkins/actions/runs/33135016184) checked out `v3.0.0-rc.2`, used Node.js v24.19.0/npm 11.6.2, passed the release gates, and published signed provenance to [Sigstore log index 2621038517](https://search.sigstore.dev/?logIndex=2621038517).
+- npm published `3.0.0-rc.2` on `next` while `latest` remained on `3.0.0-rc.1`. The 199-file, 51.8 kB tarball matched SHA-1 `cfa7c18b45f96ceaaf582dda39d500f8ea260e8e` and exposes both npm publish and SLSA provenance attestations.
+- An isolated registry install added 95 packages with 0 vulnerabilities. `npm audit signatures` verified 95 registry signatures and 10 attestations; MCP stdio `initialize` reported `3.0.0-rc.2`, listed 38 tools, and kept the test URL and credentials out of stderr.
+- [GitHub Actions run 33134322828](https://github.com/daxiong888/mcp-jenkins/actions/runs/33134322828) passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24.
 
 ---
 

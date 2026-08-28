@@ -5,7 +5,7 @@ description: Per-client setup guides for Claude Code, Claude Desktop, Cursor, VS
 
 ## 📦 Installation Options
 
-> **Release candidate status:** `3.0.0-rc.2` is the current source candidate for a Trusted Publisher release. Until its Registry and provenance checks are recorded, `3.0.0-rc.1` remains the published baseline verified below. Use `@next` for evaluation and pin an exact reviewed version for deployment.
+> **Release candidate status:** `@daxiong888/mcp-jenkins@3.0.0-rc.2` is published through npm Trusted Publishing with provenance. Use `@next` for evaluation and pin `@3.0.0-rc.2` for a reviewed deployment.
 
 **Option 1: Via npm (recommended)** — no installation needed, just use `npx` in your MCP config:
 
@@ -24,16 +24,21 @@ npm run build
 
 ## ✅ Release candidate validation
 
-`3.0.0-rc.2` changes release metadata and documentation only. Its Registry,
-provenance, and clean-install checks are not claimed before publication. The
-runtime baseline remains the following `3.0.0-rc.1` evidence.
+For `3.0.0-rc.2`, release metadata validation, 9 focused manifest/version
+tests, `npm test` (23 files, 244 tests), `npm run typecheck`, `npm run build`,
+and the npm publish dry-run passed locally on macOS arm64 with Node.js v24.11.1.
+The published `@next` tarball contains 199 files (51.8 kB) and matched npm's
+recorded SHA-1 `cfa7c18b45f96ceaaf582dda39d500f8ea260e8e`. An isolated
+install added 95 packages with 0 vulnerabilities; MCP stdio `initialize`
+reported `3.0.0-rc.2`, listed 38 tools, and kept the test URL and credentials
+out of stderr.
 
-For `3.0.0-rc.1`, the release source passed `npm test` (23 files, 244 tests),
-`npm run typecheck`, and `npm run build` locally on macOS arm64 with Node.js
-v24.11.1. The published `@next` tarball matched npm's recorded SHA-1, and a
-clean registry install completed an MCP stdio `initialize` handshake as
-`3.0.0-rc.1`, listed 38 tools, and kept the test URL and credentials out of
-stderr.
+[Release run 33135016184](https://github.com/daxiong888/mcp-jenkins/actions/runs/33135016184)
+checked out `v3.0.0-rc.2`, used Node.js v24.19.0/npm 11.6.2, and published
+signed provenance to [Sigstore log index 2621038517](https://search.sigstore.dev/?logIndex=2621038517).
+npm exposes both publish and SLSA provenance attestations for the package;
+`npm audit signatures` verified 95 registry signatures and 10 attestations in
+the isolated install.
 
 Run the full disposable Jenkins compatibility matrix with:
 
@@ -41,13 +46,14 @@ Run the full disposable Jenkins compatibility matrix with:
 npm run test:integration:docker:matrix
 ```
 
-The matrix has passed for digest-pinned Jenkins 2.411, 2.477, and 2.568.2. Each
-version boots two local controllers and validates their reported versions,
-explicit instance routing, credential isolation, and the covered write paths.
-Replay is unit/mock tested but excluded from Docker because the stock controller
-images lack the required Pipeline/Workflow plugins.
+The unchanged rc.1 runtime passed this matrix for digest-pinned Jenkins 2.411,
+2.477, and 2.568.2. Each version boots two local controllers and validates its
+reported version, explicit instance routing, credential isolation, and the
+covered write paths. The matrix was not rerun for the metadata-only rc.2
+candidate. Replay is unit/mock tested but excluded from Docker because the stock
+controller images lack the required Pipeline/Workflow plugins.
 
-[GitHub Actions run 33042439411](https://github.com/daxiong888/mcp-jenkins/actions/runs/33042439411)
+[GitHub Actions run 33134322828](https://github.com/daxiong888/mcp-jenkins/actions/runs/33134322828)
 passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24. No
 write request was sent to a real Jenkins instance, and the local controllers do
 not reproduce real plugin sets, security policies, SSO, or reverse-proxy

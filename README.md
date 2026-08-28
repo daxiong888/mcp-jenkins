@@ -24,7 +24,7 @@
 
 ## Install
 
-> Release candidate status: `3.0.0-rc.3` is the current source candidate for the manual-only Trusted Publisher path. Until its Registry and provenance checks are recorded, `3.0.0-rc.2` remains the published reviewed baseline. Use `next` for release-candidate evaluation and pin an exact reviewed version for deployment.
+> Release candidate status: `3.0.0-rc.3` is the current published candidate on `next`, released through the manual-only Trusted Publisher path. Pin `@daxiong888/mcp-jenkins@3.0.0-rc.3` for a reviewed deployment.
 
 ```sh
 npm install -g @daxiong888/mcp-jenkins@next
@@ -90,17 +90,17 @@ The client config file itself contains your credentials: restrict its permission
 
 `3.0.0-rc.3` changes release metadata and documentation only to validate the
 manual-only release workflow under npm's strict publishing-access policy. Its
-Registry, provenance, and clean-install checks are not claimed before
-publication. The Jenkins runtime matrix remains the `3.0.0-rc.1` baseline. The
-scope limits below are part of the result:
+Registry, provenance, and clean-install checks passed after publication. The
+Jenkins runtime matrix remains the `3.0.0-rc.1` baseline. The scope limits
+below are part of the result:
 
 | Layer | Verified evidence |
 | --- | --- |
 | Local quality gates | Release metadata validation, 12 focused manifest/version/workflow tests, `npm test` (24 files, 247 tests), `npm run typecheck`, `npm run build`, `npm pack`, and the npm publish dry-run passed on macOS arm64 with Node.js v24.11.1/npm 11.6.2. The pre-publication tarball contains 199 files (51,919 bytes) and matched SHA-1 `298920c9d18c434cbfd101dc70c63907d6f732b6`. |
 | Node.js support | [GitHub Actions run 33139838977](https://github.com/daxiong888/mcp-jenkins/actions/runs/33139838977) passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24 for the manual-only release workflow commit. |
 | Jenkins integration | The unchanged rc.1 runtime passed `npm run test:integration:docker:matrix` with Jenkins 2.411, 2.477, and 2.568.2 images pinned by digest. Each leg boots two disposable local controllers, asserts both reported versions, and exercises explicit instance routing and credential isolation. The matrix is not rerun for metadata-only candidates. |
-| Published package | Pending rc.3 publication. The published rc.2 baseline contains 199 files (51.8 kB), matched SHA-1 `cfa7c18b45f96ceaaf582dda39d500f8ea260e8e`, installed with 0 vulnerabilities, initialized as `3.0.0-rc.2`, listed 38 tools, and kept the test URL and credentials out of stderr. |
-| Provenance | Pending rc.3 publication. [Release run 33135016184](https://github.com/daxiong888/mcp-jenkins/actions/runs/33135016184) published the rc.2 baseline with signed provenance at [Sigstore log index 2621038517](https://search.sigstore.dev/?logIndex=2621038517); its isolated install verified 95 registry signatures and 10 attestations. |
+| Published package | npm published `3.0.0-rc.3` on `next` while `latest` remained on `3.0.0-rc.1`. The 199-file, 52.1 kB Registry tarball matched SHA-1 `d4ab4c716bd886a9f6a33a9ab9ea30cbd175e431`. An isolated install added 95 packages with 0 vulnerabilities, initialized as `3.0.0-rc.3`, listed 38 tools, and kept the synthetic test URL and credentials out of stderr. |
+| Provenance | [Release run 33149111271](https://github.com/daxiong888/mcp-jenkins/actions/runs/33149111271) checked out `v3.0.0-rc.3`, used Node.js v24.19.0/npm 11.6.2, passed all release gates, and published signed provenance at [Sigstore log index 2622828032](https://search.sigstore.dev/?logIndex=2622828032). The isolated install verified 95 registry signatures and 10 attestations. |
 
 The Docker matrix exercises job create/update/copy/rename/enable/disable/delete,
 build trigger/stop/delete, queue cancellation, node offline/online round trips,

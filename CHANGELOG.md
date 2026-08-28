@@ -16,7 +16,9 @@ Release-process candidate with no Jenkins runtime behaviour changes from
 - Package, lockfile, and MCP manifest versions are aligned at `3.0.0-rc.3`.
 - Release metadata validation, 12 focused manifest/version/workflow tests, `npm test` (24 files, 247 tests), `npm run typecheck`, `npm run build`, `npm pack`, and `npm publish --dry-run --access public --tag next` passed locally on macOS arm64 with Node.js v24.11.1 and npm 11.6.2. The pre-publication tarball contains 199 files (51,919 bytes) and matched SHA-1 `298920c9d18c434cbfd101dc70c63907d6f732b6`.
 - [GitHub Actions run 33139838977](https://github.com/daxiong888/mcp-jenkins/actions/runs/33139838977) passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24 for the manual-only release workflow commit.
-- Registry, provenance, and clean-install results are intentionally deferred until the manual publication completes; `3.0.0-rc.2` remains the published baseline.
+- [Release run 33149111271](https://github.com/daxiong888/mcp-jenkins/actions/runs/33149111271) checked out `v3.0.0-rc.3`, used Node.js v24.19.0/npm 11.6.2, passed all release gates, and published signed provenance to [Sigstore log index 2622828032](https://search.sigstore.dev/?logIndex=2622828032).
+- npm published `3.0.0-rc.3` on `next` while `latest` remained on `3.0.0-rc.1`. The 199-file, 52.1 kB Registry tarball matched SHA-1 `d4ab4c716bd886a9f6a33a9ab9ea30cbd175e431`.
+- An isolated Registry install added 95 packages with 0 vulnerabilities. `npm audit signatures` verified 95 registry signatures and 10 attestations; MCP stdio `initialize` reported `3.0.0-rc.3`, listed 38 tools, and kept the synthetic test URL and credentials out of stderr.
 
 ---
 

@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 ---
 
+## [3.0.0-rc.3] — 2026-08-28
+
+Release-process candidate with no Jenkins runtime behaviour changes from
+`3.0.0-rc.2`.
+
+### Release safety and metadata
+
+- The release workflow is manual-only, requires an existing release tag and the exact `publish` confirmation, and validates package/tag identity before publishing.
+- npm publishing access disallows bypass 2FA tokens while the OIDC Trusted Publisher remains configured for `daxiong888/mcp-jenkins` and `release.yml`.
+- Package, lockfile, and MCP manifest versions are aligned at `3.0.0-rc.3`.
+- Release metadata validation, 12 focused manifest/version/workflow tests, `npm test` (24 files, 247 tests), `npm run typecheck`, `npm run build`, `npm pack`, and `npm publish --dry-run --access public --tag next` passed locally on macOS arm64 with Node.js v24.11.1 and npm 11.6.2. The pre-publication tarball contains 199 files (51,919 bytes) and matched SHA-1 `298920c9d18c434cbfd101dc70c63907d6f732b6`.
+- [GitHub Actions run 33139838977](https://github.com/daxiong888/mcp-jenkins/actions/runs/33139838977) passed `npm ci`, typecheck, build, and all tests on Node.js 20, 22, and 24 for the manual-only release workflow commit.
+- Registry, provenance, and clean-install results are intentionally deferred until the manual publication completes; `3.0.0-rc.2` remains the published baseline.
+
+---
+
 ## [3.0.0-rc.2] — 2026-08-28
 
 Trusted Publisher release candidate with no Jenkins runtime behaviour changes

@@ -1,6 +1,6 @@
 {
   "name": "@daxiong888/mcp-jenkins",
-  "version": "3.0.0-rc.2",
+  "version": "3.0.0-rc.3",
   "description": "Jenkins MCP server with reliable writes and safe multi-instance routing",
   "type": "module",
   "main": "dist/index.js",
